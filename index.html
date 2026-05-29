@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות</title>
+<title>מערכת הזמנות משופרת ומתקדמת</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
 
@@ -221,7 +221,7 @@
     font-size: 0.97rem;
     direction: rtl;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
     background: #fafaf8;
     color: var(--text);
   }
@@ -230,6 +230,12 @@
     border-color: var(--accent2);
     box-shadow: 0 0 0 3px rgba(69,123,157,0.1);
     background: white;
+  }
+
+  input[type="text"]:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background: #f1f0ee;
   }
 
   .form-screen.zuk-mode input[type="text"]:focus {
@@ -732,9 +738,10 @@
     mode: null,
     products: { main: [], zuk: [] },
     loaded:   { main: false, zuk: false },
-    cart:     { main: {}, zuk: {} },
+    cart:      { main: {}, zuk: {} },
     categories: { main: [], zuk: [] },
     activeCategory: { main: 'הכל', zuk: 'הכל' },
+    submitting: false // דגל חסימת שליחה כפולה
   };
 
   // ── NAVIGATION ──────────────────────────────
@@ -774,6 +781,14 @@
   function resetAll() {
     state.cart = { main: {}, zuk: {} };
     state.mode = null;
+    state.submitting = false;
+    
+    // החזרת השדות למצב פעיל
+    document.getElementById('mainName').disabled = false;
+    document.getElementById('mainDivision').disabled = false;
+    document.getElementById('zukName').disabled = false;
+    document.getElementById('zukDivision').disabled = false;
+
     document.getElementById('successScreen').classList.remove('show');
     document.getElementById('mainForm').classList.remove('hide', 'active');
     document.getElementById('zukForm').classList.remove('hide', 'active');
@@ -785,6 +800,7 @@
     document.getElementById('mainDivision').value = '';
     document.getElementById('zukName').value = '';
     document.getElementById('zukDivision').value = '';
+    
     updateCartBadge();
   }
 
@@ -878,6 +894,7 @@
   // ── CART LOGIC ───────────────────────────────
 
   function setQty(mode, name, value, maxQty) {
+    if (state.submitting) return; // מניעת שינוי בזמן שליחה
     let qty = parseInt(value, 10);
     if (isNaN(qty) || qty < 0) qty = 0;
     if (qty > maxQty) qty = maxQty;
@@ -888,6 +905,7 @@
   }
 
   function changeQty(mode, name, delta, maxQty) {
+    if (state.submitting) return; // מניעת שינוי בזמן שליחה
     if (!state.cart[mode][name]) state.cart[mode][name] = { qty: 0, maxQty };
     const newQty = Math.max(0, Math.min(maxQty, state.cart[mode][name].qty + delta));
     state.cart[mode][name].qty = newQty;
@@ -898,6 +916,7 @@
 
   // שינוי כמות מתוך הסל
   function cartChangeQty(name, delta) {
+    if (state.submitting) return; // מניעת שינוי בזמן שליחה
     const m = state.mode;
     const item = state.cart[m][name];
     if (!item) return;
@@ -914,6 +933,7 @@
 
   // הסרת פריט מהסל
   function removeFromCart(name) {
+    if (state.submitting) return; // מניעת שינוי בזמן שליחה
     const m = state.mode;
     delete state.cart[m][name];
     updateCartBadge();
@@ -932,13 +952,16 @@
     badge.className     = 'cart-badge' + (m === 'zuk' ? ' zuk' : '');
   }
 
-  // ── CART DRAWER ──────────────────────────────
+  // ── CART DRAWER ──
 
   function openCart() {
     renderCartItems();
     document.getElementById('cartOverlay').classList.add('open');
     const btn = document.getElementById('submitBtn');
     btn.className = 'submit-btn' + (state.mode === 'zuk' ? ' zuk' : '');
+    
+    // אם המערכת כרגע שולחת, נשבית את כפתור השליחה
+    btn.disabled = state.submitting;
   }
 
   function closeCart() {
@@ -964,13 +987,12 @@
       <div class="cart-item">
         <div class="cart-item-info">
           <div class="cart-item-name">${name}</div>
-         
         </div>
         <div class="cart-item-controls">
-          <button class="cart-qty-btn minus" onclick="cartChangeQty('${esc(name)}',-1)" ${v.qty <= 1 ? 'disabled' : ''}>−</button>
+          <button class="cart-qty-btn minus" onclick="cartChangeQty('${esc(name)}',-1)" ${v.qty <= 1 || state.submitting ? 'disabled' : ''}>−</button>
           <span class="cart-qty-num">${v.qty}</span>
-          <button class="cart-qty-btn plus ${isZuk ? 'zuk-btn' : ''}" onclick="cartChangeQty('${esc(name)}',1)" ${v.qty >= v.maxQty ? 'disabled' : ''}>+</button>
-          <button class="cart-trash-btn" onclick="removeFromCart('${esc(name)}')" title="הסר מהסל">🗑️</button>
+          <button class="cart-qty-btn plus ${isZuk ? 'zuk-btn' : ''}" onclick="cartChangeQty('${esc(name)}',1)" ${v.qty >= v.maxQty || state.submitting ? 'disabled' : ''}>+</button>
+          <button class="cart-trash-btn" onclick="removeFromCart('${esc(name)}')" title="הסר מהסל" ${state.submitting ? 'disabled' : ''}>🗑️</button>
         </div>
       </div>
     `).join('');
@@ -982,9 +1004,14 @@
     const m        = state.mode;
     const nameId   = m === 'main' ? 'mainName'     : 'zukName';
     const divId    = m === 'main' ? 'mainDivision' : 'zukDivision';
-    const name     = document.getElementById(nameId).value.trim();
-    const division = document.getElementById(divId).value.trim();
-    const errorEl  = document.getElementById('cartError');
+    const nameInput = document.getElementById(nameId);
+    const divInput  = document.getElementById(divId);
+    const name      = nameInput.value.trim();
+    const division  = divInput.value.trim();
+    const errorEl   = document.getElementById('cartError');
+
+    // הגנה מפני קריאות מקבילות או לחיצות חוזרות
+    if (state.submitting) return;
 
     if (!name || !division) {
       errorEl.textContent = 'אנא מלא שם וחטיבה לפני שליחה';
@@ -1000,8 +1027,13 @@
 
     errorEl.style.display = 'none';
     const btn = document.getElementById('submitBtn');
-    btn.disabled    = true;
+    
+    // הפעלת מצב שליחה ונעילת אלמנטים
+    state.submitting = true;
+    btn.disabled = true;
     btn.textContent = 'שולח...';
+    nameInput.disabled = true;
+    divInput.disabled = true;
 
     const orderItems = Object.entries(state.cart[m]).map(([name, v]) => ({ name, qty: v.qty }));
     const payload    = { name, division, items: orderItems, warehouse: m };
@@ -1013,6 +1045,11 @@
         body: JSON.stringify(payload),
       });
 
+      // הצלחה! מרוקנים את הסל של המחסן הנוכחי לצמיתות כדי שלא יהיה ניתן לשלוח שוב
+      state.cart[m] = {};
+      updateCartBadge();
+      renderProducts(m);
+
       closeCart();
       document.getElementById(m === 'main' ? 'mainForm' : 'zukForm').classList.add('hide');
       document.getElementById('homeScreen').classList.add('hide');
@@ -1021,13 +1058,16 @@
       document.getElementById('successIcon').className = 'success-icon ' + m;
       document.getElementById('successScreen').classList.add('show');
 
-      btn.disabled    = false;
-      btn.textContent = 'שלח הזמנה';
     } catch (e) {
-      errorEl.textContent = 'שגיאה בשליחה. נסה שוב.';
+      // במקרה של שגיאה אמיתית ברשת, מאפשרים לנסות שוב ופותחים את הנעילה
+      errorEl.textContent = 'שגיאה בשליחה. אנא וודא חיבור לרשת ונסה שוב.';
       errorEl.style.display = 'block';
-      btn.disabled    = false;
+      
+      state.submitting = false;
+      btn.disabled = false;
       btn.textContent = 'שלח הזמנה';
+      nameInput.disabled = false;
+      divInput.disabled = false;
     }
   }
 </script>
