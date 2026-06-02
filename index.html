@@ -666,7 +666,7 @@
       <h2>פרטי הזמנה</h2>
       <div class="input-group">
         <input type="text" id="mainName" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *" required>
-        
+        <input type="text" id="mainPhone" placeholder="חטיבה *" required>
       </div>
     </div>
     <div class="loading" id="mainLoading">
@@ -785,7 +785,7 @@
     
     // החזרת השדות למצב פעיל
     document.getElementById('mainName').disabled = false;
-    document.getElementById('mainDivision').disabled = false;
+    document.getElementById('').disabled = false;
     document.getElementById('zukName').disabled = false;
     document.getElementById('zukDivision').disabled = false;
 
@@ -797,7 +797,7 @@
     document.getElementById('headerTitle').textContent = 'מערכת הזמנות';
     document.getElementById('mainHeader').classList.remove('zuk-mode');
     document.getElementById('mainName').value = '';
-    document.getElementById('mainDivision').value = '';
+    document.getElementById('').value = '';
     document.getElementById('zukName').value = '';
     document.getElementById('zukDivision').value = '';
     
@@ -1003,7 +1003,7 @@
   async function submitOrder() {
     const m        = state.mode;
     const nameId   = m === 'main' ? 'mainName'     : 'zukName';
-    const divId    = m === 'main' ? 'mainDivision' : 'zukDivision';
+    const divId    = m === 'main' ? 'mainPhone' : 'zukDivision';
     const nameInput = document.getElementById(nameId);
     const divInput  = document.getElementById(divId);
     const name      = nameInput.value.trim();
