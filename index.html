@@ -693,7 +693,7 @@
       <h2>פרטי הזמנה — ציוד זו"ק</h2>
       <div class="input-group">
         <input type="text" id="zukName" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *" required>
-        <input type="text" id="zukDivision" placeholder="חטיבה *" required>
+        <input type="text" id="zukPhone" placeholder="מס' טלפון *" required>
       </div>
     </div>
     <div class="loading" id="zukLoading">
@@ -787,7 +787,7 @@
     document.getElementById('mainName').disabled = false;
     document.getElementById('').disabled = false;
     document.getElementById('zukName').disabled = false;
-    document.getElementById('zukDivision').disabled = false;
+    document.getElementById('zukPhone').disabled = false;
 
     document.getElementById('successScreen').classList.remove('show');
     document.getElementById('mainForm').classList.remove('hide', 'active');
@@ -799,7 +799,7 @@
     document.getElementById('mainName').value = '';
     document.getElementById('').value = '';
     document.getElementById('zukName').value = '';
-    document.getElementById('zukDivision').value = '';
+    document.getElementById('zukPhone').value = '';
     
     updateCartBadge();
   }
@@ -1003,7 +1003,7 @@
   async function submitOrder() {
     const m        = state.mode;
     const nameId   = m === 'main' ? 'mainName'     : 'zukName';
-    const divId    = m === 'main' ? 'mainPhone' : 'zukDivision';
+    const divId    = m === 'main' ? 'mainPhone' : 'zukPhone';
     const nameInput = document.getElementById(nameId);
     const divInput  = document.getElementById(divId);
     const name      = nameInput.value.trim();
@@ -1014,7 +1014,7 @@
     if (state.submitting) return;
 
     if (!name || !division) {
-      errorEl.textContent = 'אנא מלא שם וחטיבה לפני שליחה';
+      errorEl.textContent = 'אנא מלא שם וטלפון לפני שליחה';
       errorEl.style.display = 'block';
       return;
     }
