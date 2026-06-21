@@ -785,7 +785,7 @@
     
     // החזרת השדות למצב פעיל
     document.getElementById('mainName').disabled = false;
-    document.getElementById('').disabled = false;
+    document.getElementById('mainPhone').disabled = false;
     document.getElementById('zukName').disabled = false;
     document.getElementById('zukPhone').disabled = false;
 
@@ -797,7 +797,7 @@
     document.getElementById('headerTitle').textContent = 'מערכת הזמנות';
     document.getElementById('mainHeader').classList.remove('zuk-mode');
     document.getElementById('mainName').value = '';
-    document.getElementById('').value = '';
+    document.getElementById('mainPhone').value = '';
     document.getElementById('zukName').value = '';
     document.getElementById('zukPhone').value = '';
     
@@ -872,17 +872,17 @@
       const isMax  = qty >= p.stock;
       const isIn   = qty > 0;
       return `
-        <div class="product-card ${isIn ? 'in-cart' : ''}">
+        <div class="product-card ${isIn ? 'in-cart' : ''}" data-name="${htmlEsc(p.name)}">
           <div>
-            <div class="product-name">${p.name}</div>
-            ${p.category ? `<div class="product-cat">${p.category}</div>` : ''}
+            <div class="product-name">${htmlEsc(p.name)}</div>
+            ${p.category ? `<div class="product-cat">${htmlEsc(p.category)}</div>` : ''}
           </div>
           <div class="qty-control">
-            <button class="qty-btn minus" onclick="changeQty('${mode}','${esc(p.name)}',-1,${p.stock})" ${qty === 0 ? 'disabled' : ''}>−</button>
+            <button class="qty-btn minus" onclick="changeQtyCard(this,'${mode}',-1,${p.stock})" ${qty === 0 ? 'disabled' : ''}>−</button>
             <input type="number" class="qty-display" value="${qty}" min="0" max="${p.stock}"
-              onchange="setQty('${mode}','${esc(p.name)}',this.value,${p.stock})"
+              onchange="setQtyCard(this,'${mode}',${p.stock})"
               onclick="this.select()">
-            <button class="qty-btn plus" onclick="changeQty('${mode}','${esc(p.name)}',1,${p.stock})" ${isMax ? 'disabled' : ''}>+</button>
+            <button class="qty-btn plus" onclick="changeQtyCard(this,'${mode}',1,${p.stock})" ${isMax ? 'disabled' : ''}>+</button>
           </div>
         </div>
       `;
@@ -890,6 +890,24 @@
   }
 
   function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
+  function htmlEsc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function changeQtyCard(btn, mode, delta, maxQty) {
+    const name = btn.closest('.product-card').dataset.name;
+    changeQty(mode, name, delta, maxQty);
+  }
+  function setQtyCard(input, mode, maxQty) {
+    const name = input.closest('.product-card').dataset.name;
+    setQty(mode, name, input.value, maxQty);
+  }
+  function cartChangeQtyItem(btn, delta) {
+    const name = btn.closest('.cart-item').dataset.name;
+    cartChangeQty(name, delta);
+  }
+  function removeFromCartItem(btn) {
+    const name = btn.closest('.cart-item').dataset.name;
+    removeFromCart(name);
+  }
 
   // ── CART LOGIC ───────────────────────────────
 
@@ -984,15 +1002,15 @@
     }
 
     container.innerHTML = items.map(([name, v]) => `
-      <div class="cart-item">
+      <div class="cart-item" data-name="${htmlEsc(name)}">
         <div class="cart-item-info">
-          <div class="cart-item-name">${name}</div>
+          <div class="cart-item-name">${htmlEsc(name)}</div>
         </div>
         <div class="cart-item-controls">
-          <button class="cart-qty-btn minus" onclick="cartChangeQty('${esc(name)}',-1)" ${v.qty <= 1 || state.submitting ? 'disabled' : ''}>−</button>
+          <button class="cart-qty-btn minus" onclick="cartChangeQtyItem(this,-1)" ${v.qty <= 1 || state.submitting ? 'disabled' : ''}>−</button>
           <span class="cart-qty-num">${v.qty}</span>
-          <button class="cart-qty-btn plus ${isZuk ? 'zuk-btn' : ''}" onclick="cartChangeQty('${esc(name)}',1)" ${v.qty >= v.maxQty || state.submitting ? 'disabled' : ''}>+</button>
-          <button class="cart-trash-btn" onclick="removeFromCart('${esc(name)}')" title="הסר מהסל" ${state.submitting ? 'disabled' : ''}>🗑️</button>
+          <button class="cart-qty-btn plus ${isZuk ? 'zuk-btn' : ''}" onclick="cartChangeQtyItem(this,1)" ${v.qty >= v.maxQty || state.submitting ? 'disabled' : ''}>+</button>
+          <button class="cart-trash-btn" onclick="removeFromCartItem(this)" title="הסר מהסל" ${state.submitting ? 'disabled' : ''}>🗑️</button>
         </div>
       </div>
     `).join('');
