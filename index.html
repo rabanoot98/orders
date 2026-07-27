@@ -1311,8 +1311,8 @@
     const bar = document.getElementById(mode === 'main' ? 'mainCategories' : 'zukCategories');
     bar.innerHTML = state.categories[mode].map(cat => `
       <button class="cat-btn ${cat === state.activeCategory[mode] ? 'active' : ''}"
-        onclick="setCategory('${mode}','${cat.replace(/'/g,"\\'")}')">
-        ${cat}
+        onclick="setCategory('${mode}','${esc(cat)}')">
+        ${htmlEsc(cat)}
       </button>
     `).join('');
   }
@@ -1363,8 +1363,21 @@
     }).join('');
   }
 
-  function esc(s) { return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
-  function htmlEsc(s) { return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function toText(value) {
+    return value == null ? '' : String(value);
+  }
+
+  function esc(value) {
+    return toText(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  }
+
+  function htmlEsc(value) {
+    return toText(value)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
 
   function changeQtyCard(btn, mode, delta, maxQty) {
     const name = btn.closest('.product-card').dataset.name;
