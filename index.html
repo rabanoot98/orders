@@ -614,6 +614,291 @@
   }
 
   header.zuk-mode .cart-badge { background: var(--zuk-accent); }
+
+  /* ── ACCOUNT (header left) ── */
+  .header-left {
+    position: absolute;
+    left: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-left .cart-badge { position: static; }
+  .account-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .account-name {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    max-width: 130px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .icon-btn {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: white;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .icon-btn:hover { background: rgba(255,255,255,0.22); }
+  .icon-btn.admin { background: var(--accent2); }
+  .icon-btn.admin:hover { background: #3a6a88; }
+
+  /* ── LOGIN SCREEN ── */
+  .login-screen { display: none; padding-top: 46px; }
+  .login-screen.active { display: block; }
+  .login-card {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 34px 24px 28px;
+    border: 1.5px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    text-align: center;
+    max-width: 380px;
+    margin: 0 auto;
+  }
+  .login-logo { font-size: 2.6rem; margin-bottom: 10px; }
+  .login-card h2 { font-size: 1.4rem; font-weight: 900; margin-bottom: 6px; }
+  .login-card p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 24px; }
+  .login-divider {
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text-light); font-size: 0.8rem; margin: 20px 0;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  #gsiButton { display: flex; justify-content: center; }
+  .btn-block {
+    width: 100%;
+    padding: 13px;
+    border-radius: var(--radius);
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.97rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .btn-block:hover { border-color: var(--accent2); }
+  .btn-block.solid { background: var(--primary); color: white; border-color: var(--primary); }
+  .btn-block.solid:hover { opacity: 0.9; }
+  .btn-block + .btn-block { margin-top: 10px; }
+  .login-note {
+    margin-top: 18px; font-size: 0.76rem; color: var(--text-light); line-height: 1.5;
+  }
+  .mock-banner {
+    background: #fff3cd; color: #7a5b00; border: 1px solid #ffe08a;
+    border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.8rem;
+    font-weight: 600; margin: 0 auto 16px; max-width: 380px; text-align: center;
+  }
+  .admin-corner {
+    position: fixed;
+    top: 10px;
+    right: 12px;
+    z-index: 400;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.32);
+    color: #ffffff;
+    border-radius: 20px;
+    padding: 6px 13px;
+    font-family: 'Heebo', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.18s;
+  }
+  .admin-corner:hover { background: rgba(255,255,255,0.3); }
+
+  /* ── ADMIN DASHBOARD ── */
+  .admin-screen { display: none; }
+  .admin-screen.active { display: block; }
+  .myorders-screen { display: none; }
+  .myorders-screen.active { display: block; }
+  .admin-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .admin-tab {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    border: 1.5px solid var(--border); background: var(--surface);
+    font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; color: var(--text-light); transition: all 0.18s;
+  }
+  .admin-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+  .admin-pane { display: none; }
+  .admin-pane.active { display: block; }
+  .admin-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .admin-toolbar h3 { font-size: 1.05rem; font-weight: 800; }
+
+  .order-card {
+    background: var(--surface); border-radius: var(--radius);
+    border: 1.5px solid var(--border); box-shadow: var(--shadow);
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .order-card.approved { border-color: var(--success); box-shadow: 0 0 0 1.5px var(--success), var(--shadow); }
+  .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+  .order-meta { flex: 1; min-width: 0; }
+  .order-customer { font-weight: 800; font-size: 1rem; }
+  .order-sub { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
+  .order-status {
+    font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 12px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .order-status.pending { background: #FFF176; color: #6b5900; }
+  .order-status.approved { background: #A5D6A7; color: #1b4332; }
+  .order-status.missing { background: #EF9A9A; color: #7f1d1d; }
+  .order-wh { font-size: 0.72rem; color: var(--text-light); }
+
+  .order-items { border-top: 1px dashed var(--border); padding-top: 8px; }
+  .order-item-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+  }
+  .order-item-name { flex: 1; font-size: 0.9rem; font-weight: 600; min-width: 0; }
+  .oi-qty-btn {
+    width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--border);
+    background: var(--bg); font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; color: var(--text); line-height: 1;
+  }
+  .oi-qty-btn:active { transform: scale(0.88); }
+  .oi-qty { font-weight: 700; font-size: 0.9rem; min-width: 26px; text-align: center; }
+
+  .order-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .order-actions button {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm);
+    font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer;
+    border: none; transition: opacity 0.18s;
+  }
+  .btn-approve { background: var(--success); color: white; }
+  .btn-approve:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-delete { background: #fee2e2; color: #dc2626; flex: 0 0 auto !important; padding: 10px 14px !important; }
+  .btn-approve:hover { opacity: 0.9; }
+
+  .admin-empty { text-align: center; padding: 40px 20px; color: var(--text-light); }
+
+  .user-row {
+    display: flex; align-items: center; gap: 10px; padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .user-info { flex: 1; min-width: 0; }
+  .user-email { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-sub { font-size: 0.75rem; color: var(--text-light); }
+  .role-select {
+    padding: 6px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
+    font-family: 'Heebo', sans-serif; font-size: 0.82rem; background: var(--surface); cursor: pointer;
+  }
+
+  .inv-row {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;
+  }
+  .inv-row .inv-stock { font-weight: 800; }
+  .inv-row .inv-stock.low { color: var(--accent); }
+  .inv-row .inv-name { flex: 1; min-width: 0; }
+  .inv-hidden-tag {
+    display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--text-light);
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1px 8px; margin-right: 6px;
+  }
+  .inv-qty-input {
+    width: 68px; padding: 7px 9px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Heebo', sans-serif; font-size: 0.9rem; font-weight: 700; text-align: center;
+    background: #fafaf8; color: var(--text); -moz-appearance: textfield; appearance: textfield;
+  }
+  .inv-qty-input::-webkit-outer-spin-button, .inv-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .inv-qty-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
+  .inv-exp { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-light); white-space: nowrap; cursor: pointer; }
+  .inv-exp input { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
+
+  /* ── RECEIVE GOODS PANEL ── */
+  .receive-panel {
+    background: var(--surface); border: 1.5px solid var(--accent2);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  .rc-input {
+    width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    font-family: 'Heebo', sans-serif; font-size: 0.92rem; direction: rtl; background: #fafaf8; color: var(--text);
+  }
+  .rc-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
+  select.rc-input { cursor: pointer; }
+  .rc-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin: 4px 0 14px; cursor: pointer; }
+  .rc-check input { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; }
+  .rc-hint { font-size: 0.76rem; color: var(--text-light); margin-top: 10px; text-align: center; line-height: 1.5; }
+  .admin-toolbar .toolbar-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .icon-btn.on { background: var(--accent) !important; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--primary); color: white; padding: 12px 22px; border-radius: 30px;
+    font-size: 0.9rem; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 500;
+    opacity: 0; transition: all 0.3s; pointer-events: none; max-width: 90%; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { background: var(--accent); }
+
+  /* ── SUPPLIER CONFIRM MODAL ── */
+  .confirm-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 300;
+    backdrop-filter: blur(3px);
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .confirm-overlay.open { display: flex; }
+  .confirm-box {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 30px 24px 24px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    animation: confirmPop 0.25s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes confirmPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .confirm-icon {
+    width: 66px; height: 66px; border-radius: 50%;
+    background: #fff3cd; color: #7a5b00;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.9rem; margin: 0 auto 18px;
+  }
+  .confirm-text { font-size: 1.05rem; font-weight: 600; color: var(--text); line-height: 1.5; }
+  .confirm-strong {
+    font-size: 1.12rem; font-weight: 900; color: var(--accent);
+    margin-top: 12px; line-height: 1.4;
+  }
+  .confirm-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
+  .confirm-yes {
+    width: 100%; padding: 15px; border: none; border-radius: var(--radius);
+    background: var(--success); color: white;
+    font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 800; cursor: pointer;
+    transition: opacity 0.18s, transform 0.15s;
+  }
+  .confirm-yes:hover { opacity: 0.9; }
+  .confirm-yes:active { transform: scale(0.98); }
+  .confirm-cancel {
+    width: 100%; padding: 13px; border: 1.5px solid var(--border); border-radius: var(--radius);
+    background: transparent; color: var(--text-light);
+    font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer;
+    transition: background 0.18s;
+  }
+  .confirm-cancel:hover { background: var(--bg); }
 </style>
 </head>
 <body>
@@ -622,13 +907,42 @@
   <div class="header-inner">
     <button class="back-btn" id="backBtn" onclick="goHome()">← חזרה</button>
     <h1 id="headerTitle">מערכת הזמנות</h1>
-    <div class="cart-badge" id="cartBadge" style="display:none" onclick="openCart()">
-      🛒 <span id="cartCount">0</span>
+    <div class="header-left">
+      <div class="cart-badge" id="cartBadge" style="display:none" onclick="openCart()">
+        🛒 <span id="cartCount">0</span>
+      </div>
+      <div class="account-badge" id="accountBadge" style="display:none">
+        <button class="icon-btn admin" id="adminBtn" style="display:none" onclick="openAdmin()">🛠️ ניהול</button>
+        <button class="icon-btn" id="myOrdersBtn" style="display:none" onclick="openMyOrders()">📋 ההזמנות שלי</button>
+        <span class="account-name" id="accountName"></span>
+        <button class="icon-btn" id="logoutBtn" onclick="logout()">יציאה</button>
+      </div>
     </div>
   </div>
 </header>
 
 <div class="container">
+
+  <!-- LOGIN -->
+  <div class="mock-banner" id="mockBanner" style="display:none">מצב בדיקה מקומי — נתונים לדוגמה בלבד</div>
+  <div class="login-screen" id="loginScreen">
+    <button class="admin-corner" id="adminCornerBtn" onclick="adminEntry()">🔑 מנהל</button>
+    <div class="login-card">
+      <div class="login-logo">📦</div>
+      <h2>מערכת הזמנות ציוד דת</h2>
+      <p>התחבר כדי להמשיך</p>
+      <div id="gsiButton"></div>
+      <div id="mockLoginButtons" style="display:none">
+        <button class="btn-block solid" onclick="mockLogin('user')">התחבר כמשתמש (בדיקה)</button>
+      </div>
+      <div class="login-divider">או</div>
+      <button class="btn-block" onclick="enterAsGuest()">המשך כאורח</button>
+      <div class="login-note">
+        התחברות עם חשבון Google יוצרת עבורך משתמש ושומרת אותו במערכת.<br>
+        כאורח ניתן להזמין ללא חשבון.
+      </div>
+    </div>
+  </div>
 
   <!-- HOME -->
   <div class="home-screen" id="homeScreen">
@@ -714,6 +1028,71 @@
     </div>
   </div>
 
+  <!-- ADMIN DASHBOARD -->
+  <div class="admin-screen" id="adminScreen">
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-pane="orders" onclick="setAdminTab('orders')">הזמנות</button>
+      <button class="admin-tab" data-pane="inventory" onclick="setAdminTab('inventory')">מלאי</button>
+      <button class="admin-tab" data-pane="users" onclick="setAdminTab('users')">משתמשים</button>
+    </div>
+
+    <div class="admin-pane active" id="ordersPane">
+      <div class="admin-toolbar">
+        <h3>הזמנות</h3>
+        <button class="icon-btn" style="background:var(--primary)" onclick="loadOrders()">↻ רענן</button>
+      </div>
+      <div id="ordersLoading" class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>
+      <div id="ordersList"></div>
+    </div>
+
+    <div class="admin-pane" id="inventoryPane">
+      <div class="admin-toolbar">
+        <h3>מלאי</h3>
+        <div class="toolbar-btns">
+          <button class="icon-btn" style="background:var(--success)" onclick="toggleReceivePanel()">➕ קליטת סחורה</button>
+          <button class="icon-btn" id="editInvBtn" style="background:var(--accent2)" onclick="toggleInvEdit()">✎ עריכת מלאי</button>
+          <button class="icon-btn" style="background:var(--primary)" onclick="loadInventory()">↻</button>
+        </div>
+      </div>
+
+      <div class="receive-panel" id="receivePanel" style="display:none">
+        <div class="section-title">קליטת סחורה</div>
+        <div class="rc-grid">
+          <select id="rcWarehouse" class="rc-input">
+            <option value="main">מחסן דת</option>
+            <option value="zuk">ציוד זו"ק</option>
+          </select>
+          <input type="text" id="rcName" class="rc-input" placeholder="שם המוצר">
+          <input type="number" id="rcQty" class="rc-input" placeholder="כמות" min="1" value="1">
+          <input type="text" id="rcCategory" class="rc-input" placeholder="קטגוריה (לא חובה)">
+        </div>
+        <label class="rc-check"><input type="checkbox" id="rcExposed" checked> חשוף להזמנות (יופיע ללקוחות)</label>
+        <button class="btn-block solid" onclick="submitReceive()">קלוט סחורה</button>
+        <div class="rc-hint">אם השם תואם למוצר קיים — הכמות תתווסף למלאי הקיים.<br>אחרת ייווצר מוצר חדש.</div>
+      </div>
+
+      <div id="inventoryList"></div>
+    </div>
+
+    <div class="admin-pane" id="usersPane">
+      <div class="admin-toolbar">
+        <h3>משתמשים והרשאות</h3>
+        <button class="icon-btn" style="background:var(--primary)" onclick="loadUsers()">↻ רענן</button>
+      </div>
+      <div id="usersList"></div>
+    </div>
+  </div>
+
+  <!-- MY ORDERS (personal area) -->
+  <div class="myorders-screen" id="myOrdersScreen">
+    <div class="admin-toolbar">
+      <h3>ההזמנות שלי</h3>
+      <button class="icon-btn" style="background:var(--primary)" onclick="loadMyOrders()">↻ רענן</button>
+    </div>
+    <div id="myOrdersLoading" class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>
+    <div id="myOrdersList"></div>
+  </div>
+
 </div>
 
 <!-- CART DRAWER -->
@@ -730,9 +1109,40 @@
   </div>
 </div>
 
+<!-- SUPPLIER CERTIFICATE CONFIRM -->
+<div class="confirm-overlay" id="supplierConfirm" onclick="handleSupplierOverlayClick(event)">
+  <div class="confirm-box">
+    <div class="confirm-icon">📋</div>
+    <p class="confirm-text">לכל משיכת ציוד יש להציג תעודת ספק</p>
+    <p class="confirm-strong">ללא תעודת ספק הציוד לא ימסר!</p>
+    <div class="confirm-actions">
+      <button class="confirm-yes" onclick="confirmSupplierAndSend()">יש לי תעודת ספק</button>
+      <button class="confirm-cancel" onclick="closeSupplierConfirm()">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwYFEeNXUWT5ezpg41RdDIRdxekxwepFEmtmtiMfpKjhXxxsNSJq8hiQLRZsY7bgwfw/exec';
   const ZUK_SHEET  = 'מחסן זוק';
+
+  // ── CONFIG ───────────────────────────────────
+  // מזהה ה-OAuth Client של Google (Web application). חייב להיות זהה לזה שבקובץ Apps Script.
+  // ריק => התחברות Google מושבתת ומופעל מצב בדיקה מקומי.
+  const GOOGLE_CLIENT_ID = '690622925527-3q0k73ioffnodq11meu6d4tvbb4aooug.apps.googleusercontent.com';
+  const ADMIN_EMAIL = 'rabanoot98@gmail.com';
+
+  // מצב בדיקה מקומי: כשמריצים מ-localhost או שאין CLIENT_ID — עובדים מול נתונים מדומים.
+  const IS_LOCAL = ['localhost', '127.0.0.1', ''].indexOf(location.hostname) > -1;
+  const USE_MOCK = IS_LOCAL || !GOOGLE_CLIENT_ID;
+
+  let auth = { email: null, name: null, role: 'guest', token: null, loggedIn: false };
 
   let state = {
     mode: null,
@@ -751,6 +1161,9 @@
     document.getElementById('homeScreen').classList.remove('hide');
     document.getElementById('mainForm').classList.remove('active');
     document.getElementById('zukForm').classList.remove('active');
+    document.getElementById('adminScreen').classList.remove('active');
+    document.getElementById('myOrdersScreen').classList.remove('active');
+    document.getElementById('successScreen').classList.remove('show');
     document.getElementById('backBtn').classList.remove('visible');
     document.getElementById('headerTitle').textContent = 'מערכת הזמנות';
     document.getElementById('mainHeader').classList.remove('zuk-mode');
@@ -811,13 +1224,9 @@
     const sectionId = mode === 'main' ? 'mainProductsSection' : 'zukProductsSection';
     const errorId   = mode === 'main' ? 'mainError' : 'zukError';
 
-    const url = mode === 'main'
-      ? `${SCRIPT_URL}?action=getProducts`
-      : `${SCRIPT_URL}?action=getProducts&sheet=${encodeURIComponent(ZUK_SHEET)}`;
-
     try {
-      const res  = await fetch(url);
-      const data = await res.json();
+      const params = mode === 'main' ? {} : { sheet: ZUK_SHEET };
+      const data = await api('getProducts', params);
       state.products[mode] = data;
       state.categories[mode] = ['הכל', ...new Set(data.map(p => p.category).filter(Boolean))];
       state.loaded[mode] = true;
@@ -1044,8 +1453,35 @@
     }
 
     errorEl.style.display = 'none';
-    const btn = document.getElementById('submitBtn');
-    
+
+    // דרישת תעודת ספק: מציגים אישור לפני השליחה בפועל
+    openSupplierConfirm();
+  }
+
+  // ── SUPPLIER CERTIFICATE CONFIRM ─────────────
+  function openSupplierConfirm() {
+    document.getElementById('supplierConfirm').classList.add('open');
+  }
+  function closeSupplierConfirm() {
+    document.getElementById('supplierConfirm').classList.remove('open');
+  }
+  function handleSupplierOverlayClick(e) {
+    if (e.target === document.getElementById('supplierConfirm')) closeSupplierConfirm();
+  }
+
+  // שליחת ההזמנה בפועל — לאחר אישור "יש לי תעודת ספק"
+  async function confirmSupplierAndSend() {
+    closeSupplierConfirm();
+    const m         = state.mode;
+    const nameInput = document.getElementById(m === 'main' ? 'mainName' : 'zukName');
+    const divInput  = document.getElementById(m === 'main' ? 'mainPhone' : 'zukPhone');
+    const name      = nameInput.value.trim();
+    const division  = divInput.value.trim();
+    const errorEl   = document.getElementById('cartError');
+    const btn       = document.getElementById('submitBtn');
+
+    if (state.submitting) return;
+
     // הפעלת מצב שליחה ונעילת אלמנטים
     state.submitting = true;
     btn.disabled = true;
@@ -1053,15 +1489,11 @@
     nameInput.disabled = true;
     divInput.disabled = true;
 
-    const orderItems = Object.entries(state.cart[m]).map(([name, v]) => ({ name, qty: v.qty }));
+    const orderItems = Object.entries(state.cart[m]).map(([n, v]) => ({ name: n, qty: v.qty }));
     const payload    = { name, division, items: orderItems, warehouse: m };
 
     try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload),
-      });
+      await api('submitOrder', payload);
 
       // הצלחה! מרוקנים את הסל של המחסן הנוכחי לצמיתות כדי שלא יהיה ניתן לשלוח שוב
       state.cart[m] = {};
@@ -1080,7 +1512,7 @@
       // במקרה של שגיאה אמיתית ברשת, מאפשרים לנסות שוב ופותחים את הנעילה
       errorEl.textContent = 'שגיאה בשליחה. אנא וודא חיבור לרשת ונסה שוב.';
       errorEl.style.display = 'block';
-      
+
       state.submitting = false;
       btn.disabled = false;
       btn.textContent = 'שלח הזמנה';
@@ -1088,6 +1520,581 @@
       divInput.disabled = false;
     }
   }
+
+  // ── API LAYER ────────────────────────────────
+  // במצב בדיקה מקומי (localhost / ללא CLIENT_ID) פונה ל-Mock; אחרת ל-Apps Script.
+  async function api(action, params) {
+    if (USE_MOCK) return Mock.handle(action, params || {});
+    const body = Object.assign({ action: action }, params || {});
+    if (auth.token) body.idToken = auth.token;
+    // Content-Type: text/plain כדי להימנע מ-preflight ולאפשר קריאת התשובה (CORS)
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data && data.error) throw new Error(data.error);
+    return data;
+  }
+
+  // ── MOCK BACKEND (בדיקה מקומית) ───────────────
+  const Mock = (function () {
+    let products = {
+      main: [
+        { name: 'סידור', stock: 12, category: 'ספרים', exposed: true },
+        { name: 'טלית', stock: 5, category: 'לבוש', exposed: true },
+        { name: 'תפילין', stock: 3, category: 'תשמישי קדושה', exposed: true },
+        { name: 'נרות שבת', stock: 40, category: 'כללי', exposed: true },
+        { name: 'ספר תהילים', stock: 8, category: 'ספרים', exposed: false },
+      ],
+      zuk: [
+        { name: 'אפוד', stock: 8, category: 'ציוד', exposed: true },
+        { name: 'קסדה', stock: 6, category: 'ציוד', exposed: true },
+        { name: 'פנס טקטי', stock: 15, category: 'ציוד', exposed: true },
+      ],
+    };
+    let rowSeq = 100;
+    let orders = [
+      { startRow: 2, date: '26.7.2026, 10:05', name: 'ד.כ', division: '050-1234567', warehouse: 'main', orderId: 'MOCK-1', email: 'user@example.com',
+        items: [ { row: 2, name: 'סידור', qty: 2, status: 'ממתין לאישור' }, { row: 3, name: 'טלית', qty: 1, status: 'ממתין לאישור' } ] },
+      { startRow: 5, date: '26.7.2026, 09:30', name: 'א.ב', division: '052-7654321', warehouse: 'zuk', orderId: 'MOCK-2', email: '',
+        items: [ { row: 5, name: 'קסדה', qty: 1, status: 'ממתין לאישור' } ] },
+      { startRow: 7, date: '25.7.2026, 14:00', name: 'מ.ג', division: '054-1112223', warehouse: 'main', orderId: 'MOCK-3', email: 'user@example.com',
+        items: [ { row: 7, name: 'נרות שבת', qty: 5, status: 'עודכן במלאי' } ] },
+    ];
+    let users = [
+      { email: ADMIN_EMAIL, name: 'מנהל', role: 'admin', lastSeen: '', registered: '26.7.2026' },
+      { email: 'user@example.com', name: 'משתמש בדיקה', role: 'user', lastSeen: '26.7.2026', registered: '25.7.2026' },
+    ];
+    function orderStatus(o) {
+      const st = o.items.map(function (i) { return i.status; });
+      if (st.every(function (s) { return s === 'מאושר' || s === 'עודכן במלאי'; })) return 'מאושר';
+      if (st.indexOf('חסר') > -1) return 'חסר';
+      return 'ממתין לאישור';
+    }
+    function delay(v) { return new Promise(function (r) { setTimeout(function () { r(v); }, 150); }); }
+    function findByRow(row) {
+      for (var i = 0; i < orders.length; i++) {
+        var it = orders[i].items.find(function (x) { return x.row === Number(row); });
+        if (it) return { order: orders[i], item: it };
+      }
+      return null;
+    }
+    return {
+      handle: function (action, p) {
+        switch (action) {
+          case 'getProducts': {
+            const list = p.sheet ? products.zuk : products.main;
+            return delay(list.filter(function (x) { return x.stock > 0 && x.exposed !== false; })
+              .map(function (x) { return { name: x.name, stock: x.stock, category: x.category }; }));
+          }
+          case 'submitOrder': {
+            const start = ++rowSeq;
+            const o = { startRow: start, date: new Date().toLocaleString('he-IL'), name: p.name, division: p.division,
+              warehouse: p.warehouse || 'main', orderId: 'MOCK-' + start,
+              email: (auth.role === 'guest' ? '' : (auth.email || '')),
+              items: p.items.map(function (it, idx) { return { row: start + idx, name: it.name, qty: it.qty, status: 'ממתין לאישור' }; }) };
+            orders.unshift(o);
+            return delay({ success: true });
+          }
+          case 'getMyOrders': {
+            const email = (auth.email || '').toLowerCase();
+            if (!email) return delay({ ok: false, error: 'עליך להתחבר כדי לראות את ההזמנות שלך' });
+            const mine = orders.filter(function (o) { return String(o.email || '').toLowerCase() === email; })
+              .map(function (o) {
+                return { date: o.date, warehouse: o.warehouse,
+                  items: o.items.map(function (it) { return { name: it.name, qty: it.qty }; }),
+                  status: orderStatus(o) === 'מאושר' ? 'מוכנה לאיסוף' : 'ממתינה' };
+              });
+            return delay({ ok: true, orders: mine });
+          }
+          case 'login':
+            return delay({ ok: true, email: auth.email, name: auth.name, role: auth.role });
+          case 'getOrders':
+            return delay({ ok: true, orders: orders.map(function (o) { return Object.assign({ status: orderStatus(o) }, JSON.parse(JSON.stringify(o))); }) });
+          case 'updateOrderItem': {
+            const f = findByRow(p.row);
+            if (f) { if (p.qty != null) f.item.qty = Math.max(0, parseInt(p.qty, 10) || 0); if (p.status) f.item.status = p.status; }
+            return delay({ ok: true });
+          }
+          case 'updateOrderMeta': {
+            const o = orders.find(function (x) { return x.startRow === Number(p.startRow); });
+            if (o) { if (p.name != null) o.name = p.name; if (p.division != null) o.division = p.division; }
+            return delay({ ok: true });
+          }
+          case 'approveOrder': {
+            const o = orders.find(function (x) { return x.startRow === Number(p.startRow); });
+            if (!o) return delay({ ok: false, error: 'ההזמנה לא נמצאה' });
+            const results = [];
+            o.items.forEach(function (it) {
+              if (it.status === 'עודכן במלאי') { results.push({ name: it.name, skipped: true }); return; }
+              const inv = products[o.warehouse] || products.main;
+              const prod = inv.find(function (x) { return x.name === it.name; });
+              if (prod) { prod.stock = Math.max(0, prod.stock - it.qty); results.push({ name: it.name, newStock: prod.stock }); }
+              else results.push({ name: it.name, notFound: true });
+              it.status = 'עודכן במלאי';
+            });
+            return delay({ ok: true, results: results });
+          }
+          case 'deleteOrder': {
+            orders = orders.filter(function (x) { return x.startRow !== Number(p.startRow); });
+            return delay({ ok: true });
+          }
+          case 'getInventory':
+            return delay({ ok: true, inventory: {
+              main: products.main.map(function (x) { return Object.assign({ exposed: x.exposed !== false }, x); }),
+              zuk: products.zuk.map(function (x) { return Object.assign({ exposed: x.exposed !== false }, x); }) } });
+          case 'updateInventoryItem': {
+            const arr = products[p.warehouse] || products.main;
+            const prod = arr.find(function (x) { return x.name === p.name; });
+            if (!prod) return delay({ ok: false, error: 'מוצר לא נמצא' });
+            if (p.qty != null) prod.stock = Math.max(0, parseInt(p.qty, 10) || 0);
+            if (p.category != null) prod.category = p.category;
+            if (p.exposed != null) prod.exposed = !!p.exposed;
+            return delay({ ok: true });
+          }
+          case 'receiveGoods': {
+            const arr = products[p.warehouse] || products.main;
+            const name = String(p.name || '').trim();
+            if (!name) return delay({ ok: false, error: 'חסר שם מוצר' });
+            const addQty = Math.max(0, parseInt(p.qty, 10) || 0);
+            const prod = arr.find(function (x) { return x.name === name; });
+            if (prod) {
+              prod.stock += addQty;
+              if (p.category) prod.category = p.category;
+              if (p.exposed != null) prod.exposed = !!p.exposed;
+              return delay({ ok: true, created: false, newStock: prod.stock, name: name });
+            }
+            arr.push({ name: name, stock: addQty, category: p.category || 'כללי', exposed: p.exposed !== false });
+            return delay({ ok: true, created: true, newStock: addQty, name: name });
+          }
+          case 'listUsers':
+            return delay({ ok: true, users: users.map(function (x) { return Object.assign({}, x); }) });
+          case 'setUserRole': {
+            const u = users.find(function (x) { return x.email.toLowerCase() === String(p.email).toLowerCase(); });
+            if (u && u.email !== ADMIN_EMAIL) u.role = p.role;
+            return delay({ ok: true });
+          }
+          default:
+            return delay({ error: 'פעולה לא מוכרת: ' + action });
+        }
+      }
+    };
+  })();
+
+  // ── AUTH ─────────────────────────────────────
+  function initAuthUI() {
+    if (USE_MOCK) {
+      document.getElementById('mockBanner').style.display = 'block';
+      document.getElementById('mockLoginButtons').style.display = 'block';
+      document.getElementById('gsiButton').style.display = 'none';
+      return;
+    }
+    const tryInit = function () {
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
+        google.accounts.id.renderButton(document.getElementById('gsiButton'),
+          { theme: 'outline', size: 'large', text: 'signin_with', locale: 'he', width: 300 });
+        return true;
+      }
+      return false;
+    };
+    if (!tryInit()) {
+      let n = 0;
+      const iv = setInterval(function () { if (tryInit() || ++n > 60) clearInterval(iv); }, 100);
+    }
+  }
+
+  async function handleCredentialResponse(response) {
+    auth.token = response.credential;
+    try {
+      const data = await api('login', {});
+      if (!data || !data.ok) { showToast('אימות נכשל', true); auth.token = null; return; }
+      auth.email = data.email; auth.name = data.name; auth.role = data.role;
+      afterLogin();
+    } catch (e) {
+      auth.token = null;
+      showToast('שגיאת התחברות: ' + e.message, true);
+    }
+  }
+
+  function mockLogin(role) {
+    auth.token = 'mock-token';
+    if (role === 'admin') { auth.email = ADMIN_EMAIL; auth.name = 'מנהל'; auth.role = 'admin'; }
+    else { auth.email = 'user@example.com'; auth.name = 'משתמש בדיקה'; auth.role = 'user'; }
+    afterLogin();
+  }
+
+  // כניסת מנהל מהכפתור הקטן בפינה.
+  // מקומית (בדיקה) — מתחבר ישירות כמנהל. באוויר — פותח התחברות Google;
+  // מי שמתחבר עם חשבון המנהל (rabanoot98@gmail.com) יזוהה אוטומטית כמנהל.
+  function adminEntry() {
+    if (USE_MOCK) { mockLogin('admin'); return; }
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.prompt();
+    } else {
+      showToast('טוען התחברות Google, נסה שוב עוד רגע…', true);
+    }
+  }
+
+  function enterAsGuest() {
+    auth = { email: null, name: 'אורח', role: 'guest', token: null, loggedIn: true };
+    afterLogin();
+  }
+
+  function afterLogin() {
+    auth.loggedIn = true;
+    document.getElementById('loginScreen').classList.remove('active');
+    document.getElementById('accountBadge').style.display = 'flex';
+    document.getElementById('accountName').textContent = auth.role === 'guest' ? 'אורח' : (auth.name || auth.email || '');
+    document.getElementById('adminBtn').style.display = auth.role === 'admin' ? 'block' : 'none';
+    // אזור אישי — לכל משתמש מחובר (לא אורח)
+    document.getElementById('myOrdersBtn').style.display = (auth.role !== 'guest' && auth.email) ? 'block' : 'none';
+    document.getElementById('homeScreen').classList.remove('hide');
+    showToast(auth.role === 'admin' ? 'שלום מנהל 👋' : (auth.role === 'guest' ? 'ברוך הבא, אורח' : 'התחברת בהצלחה'));
+  }
+
+  function logout() {
+    if (!USE_MOCK && window.google && google.accounts && google.accounts.id) {
+      try { google.accounts.id.disableAutoSelect(); } catch (e) {}
+    }
+    auth = { email: null, name: null, role: 'guest', token: null, loggedIn: false };
+    state.cart = { main: {}, zuk: {} };
+    goHome();
+    document.getElementById('accountBadge').style.display = 'none';
+    document.getElementById('adminBtn').style.display = 'none';
+    document.getElementById('myOrdersBtn').style.display = 'none';
+    document.getElementById('homeScreen').classList.add('hide');
+    document.getElementById('loginScreen').classList.add('active');
+    updateCartBadge();
+  }
+
+  // ── ADMIN DASHBOARD ──────────────────────────
+  let adminOrders = [];
+
+  function openAdmin() {
+    goHome();
+    document.getElementById('homeScreen').classList.add('hide');
+    document.getElementById('adminScreen').classList.add('active');
+    document.getElementById('headerTitle').textContent = 'ניהול';
+    document.getElementById('backBtn').classList.add('visible');
+    document.getElementById('cartBadge').style.display = 'none';
+    setAdminTab('orders');
+    loadOrders();
+  }
+
+  function setAdminTab(pane) {
+    document.querySelectorAll('.admin-tab').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.pane === pane);
+    });
+    document.getElementById('ordersPane').classList.toggle('active', pane === 'orders');
+    document.getElementById('inventoryPane').classList.toggle('active', pane === 'inventory');
+    document.getElementById('usersPane').classList.toggle('active', pane === 'users');
+    if (pane === 'inventory') loadInventory();
+    if (pane === 'users') loadUsers();
+  }
+
+  const WH_LABEL = { main: 'מחסן ראשי', zuk: 'ציוד זו"ק' };
+
+  // ── MY ORDERS (אזור אישי) ────────────────────
+  function openMyOrders() {
+    goHome();
+    document.getElementById('homeScreen').classList.add('hide');
+    document.getElementById('myOrdersScreen').classList.add('active');
+    document.getElementById('headerTitle').textContent = 'ההזמנות שלי';
+    document.getElementById('backBtn').classList.add('visible');
+    document.getElementById('cartBadge').style.display = 'none';
+    loadMyOrders();
+  }
+
+  async function loadMyOrders() {
+    const list = document.getElementById('myOrdersList');
+    document.getElementById('myOrdersLoading').style.display = 'block';
+    list.innerHTML = '';
+    try {
+      const data = await api('getMyOrders', {});
+      document.getElementById('myOrdersLoading').style.display = 'none';
+      if (data && data.ok === false) { list.innerHTML = '<div class="admin-empty">' + htmlEsc(data.error || 'שגיאה') + '</div>'; return; }
+      renderMyOrders((data && data.orders) || []);
+    } catch (e) {
+      document.getElementById('myOrdersLoading').style.display = 'none';
+      list.innerHTML = '<div class="admin-empty">שגיאה בטעינת ההזמנות:<br>' + htmlEsc(e.message) + '</div>';
+    }
+  }
+
+  function renderMyOrders(orders) {
+    const list = document.getElementById('myOrdersList');
+    if (!orders.length) {
+      list.innerHTML = '<div class="admin-empty">אין לך הזמנות עדיין 📭</div>';
+      return;
+    }
+    list.innerHTML = orders.map(function (o) {
+      const ready = o.status === 'מוכנה לאיסוף';
+      const cls = ready ? 'approved' : 'pending';
+      const badge = ready ? '✅ מוכנה לאיסוף' : '⏳ ממתינה';
+      const items = o.items.map(function (it) {
+        return '<div class="order-item-row"><span class="order-item-name">' + htmlEsc(it.name) + '</span>' +
+          '<span class="oi-qty">×' + it.qty + '</span></div>';
+      }).join('');
+      return '<div class="order-card ' + (ready ? 'approved' : '') + '">' +
+        '<div class="order-head">' +
+          '<div class="order-meta">' +
+            '<div class="order-customer">📦 ' + (WH_LABEL[o.warehouse] || o.warehouse) + '</div>' +
+            '<div class="order-sub">' + htmlEsc(o.date || '') + '</div>' +
+          '</div>' +
+          '<span class="order-status ' + cls + '">' + badge + '</span>' +
+        '</div>' +
+        '<div class="order-items">' + items + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  async function loadOrders() {
+    const list = document.getElementById('ordersList');
+    document.getElementById('ordersLoading').style.display = 'block';
+    list.innerHTML = '';
+    try {
+      const data = await api('getOrders', {});
+      adminOrders = (data && data.orders) || [];
+      document.getElementById('ordersLoading').style.display = 'none';
+      renderOrders();
+    } catch (e) {
+      document.getElementById('ordersLoading').style.display = 'none';
+      list.innerHTML = '<div class="admin-empty">שגיאה בטעינת ההזמנות:<br>' + htmlEsc(e.message) + '</div>';
+    }
+  }
+
+  function renderOrders() {
+    const list = document.getElementById('ordersList');
+    if (!adminOrders.length) {
+      list.innerHTML = '<div class="admin-empty">אין הזמנות כרגע 📭</div>';
+      return;
+    }
+    list.innerHTML = adminOrders.map(function (o) {
+      const approved = o.status === 'מאושר';
+      const statusCls = approved ? 'approved' : (o.status === 'חסר' ? 'missing' : 'pending');
+      const itemsHtml = o.items.map(function (it) {
+        const locked = it.status === 'עודכן במלאי';
+        return '' +
+          '<div class="order-item-row">' +
+            '<span class="order-item-name">' + htmlEsc(it.name) + '</span>' +
+            '<button class="oi-qty-btn" onclick="adminAdjustQty(' + o.startRow + ',' + it.row + ',-1)" ' + (locked ? 'disabled' : '') + '>−</button>' +
+            '<span class="oi-qty">' + it.qty + '</span>' +
+            '<button class="oi-qty-btn" onclick="adminAdjustQty(' + o.startRow + ',' + it.row + ',1)" ' + (locked ? 'disabled' : '') + '>+</button>' +
+          '</div>';
+      }).join('');
+      return '' +
+        '<div class="order-card ' + (approved ? 'approved' : '') + '">' +
+          '<div class="order-head">' +
+            '<div class="order-meta">' +
+              '<div class="order-customer">' + htmlEsc(o.name || '—') + '</div>' +
+              '<div class="order-sub">' + htmlEsc(o.division || '') + ' · ' + htmlEsc(o.date || '') + '</div>' +
+              '<div class="order-wh">📦 ' + (WH_LABEL[o.warehouse] || o.warehouse) + '</div>' +
+            '</div>' +
+            '<span class="order-status ' + statusCls + '">' + htmlEsc(o.status) + '</span>' +
+          '</div>' +
+          '<div class="order-items">' + itemsHtml + '</div>' +
+          '<div class="order-actions">' +
+            '<button class="btn-approve" onclick="approveOrderUI(' + o.startRow + ')" ' + (approved ? 'disabled' : '') + '>' +
+              (approved ? '✓ אושר והורד מהמלאי' : 'אשר הזמנה + הורד מלאי') + '</button>' +
+            '<button class="btn-delete" onclick="deleteOrderUI(' + o.startRow + ')">🗑️</button>' +
+          '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function adminAdjustQty(startRow, row, delta) {
+    const o = adminOrders.find(function (x) { return x.startRow === startRow; });
+    if (!o) return;
+    const it = o.items.find(function (x) { return x.row === row; });
+    if (!it) return;
+    const newQty = Math.max(0, (parseInt(it.qty, 10) || 0) + delta);
+    it.qty = newQty;
+    renderOrders();
+    try {
+      await api('updateOrderItem', { row: row, qty: newQty });
+    } catch (e) {
+      showToast('שמירת הכמות נכשלה: ' + e.message, true);
+    }
+  }
+
+  async function approveOrderUI(startRow) {
+    if (!confirm('לאשר את ההזמנה ולהוריד את הכמויות מהמלאי?')) return;
+    try {
+      const data = await api('approveOrder', { startRow: startRow });
+      if (data && data.ok === false) { showToast(data.error || 'האישור נכשל', true); return; }
+      showToast('ההזמנה אושרה והמלאי עודכן ✓');
+      loadOrders();
+    } catch (e) {
+      showToast('שגיאה באישור: ' + e.message, true);
+    }
+  }
+
+  async function deleteOrderUI(startRow) {
+    if (!confirm('למחוק את ההזמנה לצמיתות?')) return;
+    try {
+      await api('deleteOrder', { startRow: startRow });
+      showToast('ההזמנה נמחקה');
+      loadOrders();
+    } catch (e) {
+      showToast('שגיאה במחיקה: ' + e.message, true);
+    }
+  }
+
+  let adminInventory = { main: [], zuk: [] };
+  let invEditMode = false;
+
+  async function loadInventory() {
+    const el = document.getElementById('inventoryList');
+    el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+      const data = await api('getInventory', {});
+      adminInventory = data.inventory || { main: [], zuk: [] };
+      renderInventory();
+    } catch (e) {
+      el.innerHTML = '<div class="admin-empty">שגיאה: ' + htmlEsc(e.message) + '</div>';
+    }
+  }
+
+  function renderInventory() {
+    const el = document.getElementById('inventoryList');
+    const secs = [['main', 'מחסן דת'], ['zuk', 'ציוד זו"ק']];
+    let html = secs.map(function (pair) {
+      const wh = pair[0];
+      const arr = adminInventory[wh] || [];
+      if (!arr.length) return '';
+      const rows = arr.map(function (p) {
+        const low = (parseInt(p.stock, 10) || 0) <= 3;
+        if (invEditMode) {
+          return '<div class="inv-row edit">' +
+            '<span class="inv-name">' + htmlEsc(p.name) + '</span>' +
+            '<input type="number" class="inv-qty-input" min="0" value="' + p.stock + '"' +
+              ' data-wh="' + wh + '" data-name="' + htmlEsc(p.name) + '" onchange="invQtyChanged(this)">' +
+            '<label class="inv-exp"><input type="checkbox" ' + (p.exposed ? 'checked' : '') +
+              ' data-wh="' + wh + '" data-name="' + htmlEsc(p.name) + '" onchange="invExposedChanged(this)"> חשוף</label>' +
+          '</div>';
+        }
+        return '<div class="inv-row">' +
+          '<span class="inv-name">' + htmlEsc(p.name) +
+            (p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>') + '</span>' +
+          '<span class="inv-stock ' + (low ? 'low' : '') + '">' + p.stock + '</span>' +
+        '</div>';
+      }).join('');
+      return '<div class="section-title" style="margin-top:14px">' + pair[1] + '</div>' + rows;
+    }).join('');
+    if (!html) html = '<div class="admin-empty">אין פריטים במלאי</div>';
+    el.innerHTML = html;
+  }
+
+  function toggleInvEdit() {
+    invEditMode = !invEditMode;
+    const btn = document.getElementById('editInvBtn');
+    btn.classList.toggle('on', invEditMode);
+    btn.textContent = invEditMode ? '✓ סיום עריכה' : '✎ עריכת מלאי';
+    renderInventory();
+  }
+
+  function localInvItem(wh, name) {
+    return (adminInventory[wh] || []).find(function (x) { return x.name === name; });
+  }
+
+  async function invQtyChanged(input) {
+    const wh = input.dataset.wh, name = input.dataset.name;
+    const qty = Math.max(0, parseInt(input.value, 10) || 0);
+    input.value = qty;
+    const item = localInvItem(wh, name); if (item) item.stock = qty;
+    try { await api('updateInventoryItem', { warehouse: wh, name: name, qty: qty }); showToast('הכמות עודכנה'); }
+    catch (e) { showToast('שגיאה בעדכון: ' + e.message, true); }
+  }
+
+  async function invExposedChanged(input) {
+    const wh = input.dataset.wh, name = input.dataset.name, exposed = input.checked;
+    const item = localInvItem(wh, name); if (item) item.exposed = exposed;
+    try { await api('updateInventoryItem', { warehouse: wh, name: name, exposed: exposed }); showToast(exposed ? 'המוצר חשוף להזמנות' : 'המוצר הוסתר מהזמנות'); }
+    catch (e) { showToast('שגיאה בעדכון: ' + e.message, true); }
+  }
+
+  function toggleReceivePanel() {
+    const panel = document.getElementById('receivePanel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if (panel.style.display === 'block') document.getElementById('rcName').focus();
+  }
+
+  async function submitReceive() {
+    const wh = document.getElementById('rcWarehouse').value;
+    const name = document.getElementById('rcName').value.trim();
+    const qty = parseInt(document.getElementById('rcQty').value, 10) || 0;
+    const category = document.getElementById('rcCategory').value.trim();
+    const exposed = document.getElementById('rcExposed').checked;
+    if (!name) { showToast('אנא הזן שם מוצר', true); return; }
+    if (qty <= 0) { showToast('אנא הזן כמות חיובית', true); return; }
+    try {
+      const data = await api('receiveGoods', { warehouse: wh, name: name, qty: qty, category: category, exposed: exposed });
+      if (data && data.ok === false) { showToast(data.error || 'הקליטה נכשלה', true); return; }
+      showToast(data.created ? ('נוצר מוצר חדש: ' + name) : ('נוסף למלאי — סה"כ ' + data.newStock));
+      document.getElementById('rcName').value = '';
+      document.getElementById('rcQty').value = '1';
+      document.getElementById('rcCategory').value = '';
+      loadInventory();
+    } catch (e) {
+      showToast('שגיאה בקליטה: ' + e.message, true);
+    }
+  }
+
+  async function loadUsers() {
+    const el = document.getElementById('usersList');
+    el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+    try {
+      const data = await api('listUsers', {});
+      const users = data.users || [];
+      if (!users.length) { el.innerHTML = '<div class="admin-empty">אין משתמשים רשומים</div>'; return; }
+      el.innerHTML = users.map(function (u) {
+        const isMainAdmin = u.email.toLowerCase() === ADMIN_EMAIL;
+        return '<div class="user-row">' +
+          '<div class="user-info">' +
+            '<div class="user-email">' + htmlEsc(u.email) + '</div>' +
+            '<div class="user-sub">' + htmlEsc(u.name || '') + (u.lastSeen ? ' · כניסה: ' + htmlEsc(u.lastSeen) : '') + '</div>' +
+          '</div>' +
+          (isMainAdmin
+            ? '<span class="order-status approved">מנהל ראשי</span>'
+            : '<select class="role-select" onchange="setRole(\'' + esc(u.email) + '\', this.value)">' +
+                '<option value="user"' + (u.role !== 'admin' ? ' selected' : '') + '>משתמש</option>' +
+                '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>מנהל</option>' +
+              '</select>') +
+          '</div>';
+      }).join('');
+    } catch (e) {
+      el.innerHTML = '<div class="admin-empty">שגיאה: ' + htmlEsc(e.message) + '</div>';
+    }
+  }
+
+  async function setRole(email, role) {
+    try {
+      const data = await api('setUserRole', { email: email, role: role });
+      if (data && data.ok === false) { showToast(data.error || 'העדכון נכשל', true); return; }
+      showToast('ההרשאה עודכנה');
+    } catch (e) {
+      showToast('שגיאה: ' + e.message, true);
+    }
+  }
+
+  // ── TOAST ────────────────────────────────────
+  let toastTimer = null;
+  function showToast(msg, isErr) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (isErr ? ' err' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = 'toast'; }, 3000);
+  }
+
+  // ── INIT ─────────────────────────────────────
+  window.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('homeScreen').classList.add('hide');
+    document.getElementById('loginScreen').classList.add('active');
+    initAuthUI();
+  });
 </script>
 </body>
 </html>
