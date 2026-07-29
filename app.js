@@ -386,6 +386,10 @@ async function submitOrder(certMode) {
       }
     }
 
+    // 4) התראה במייל למנהלים — לא חוסם; כישלון לא מבטל את ההזמנה
+    sb.functions.invoke('send-new-order', { body: { order_id: order.id } })
+      .catch(err => console.warn('notify', err));
+
     state.cart = {};
     updateCartBadge();
     closeCertModal();

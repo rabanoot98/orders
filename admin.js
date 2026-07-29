@@ -8,6 +8,7 @@ import {
 
 let inventory = { main: [], zuk: [] };
 let invEditMode = false;
+let invWarehouse = 'main';   // המחסן המוצג כרגע בלשונית המלאי
 
 // ── פתיחה + לשוניות ─────────────────────────────────────────
 export function openAdmin() {
@@ -18,13 +19,14 @@ export function openAdmin() {
 function setTab(pane) {
   document.querySelectorAll('.admin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.pane === pane));
-  ['orders', 'archive', 'inventory', 'users'].forEach(p =>
+  ['orders', 'archive', 'inventory', 'users', 'notify'].forEach(p =>
     $(p + 'Pane').classList.toggle('active', p === pane));
 
   if (pane === 'orders') loadOrders();
   if (pane === 'archive') loadArchive();
-  if (pane === 'inventory') loadInventory();
+  if (pane === 'inventory') { showInvPicker(); loadInventory(); }
   if (pane === 'users') loadUsers();
+  if (pane === 'notify') loadNotify();
 }
 
 // ── הזמנות ──────────────────────────────────────────────────
@@ -215,33 +217,86 @@ async function loadInventory() {
     if (error) throw error;
     inventory = { main: [], zuk: [] };
     (data || []).forEach(p => inventory[p.warehouse]?.push(p));
-    renderInventory();
+    renderPicker();
+    if ($('invDetail').style.display !== 'none') renderInventory();
   } catch (err) {
     el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
+    toast(friendlyError(err), true);
   }
 }
 
-function renderInventory() {
-  const html = [['main', 'מחסן דת'], ['zuk', 'ציוד זו"ק']].map(([wh, title]) => {
+// סיכום לכל מחסן בכרטיסי הבחירה
+function renderPicker() {
+  [['main', 'cntMain', 'metaMain'], ['zuk', 'cntZuk', 'metaZuk']].forEach(([wh, cntId, metaId]) => {
     const arr = inventory[wh] || [];
-    if (!arr.length) return '';
-    const rows = arr.map(p => {
-      const low = (p.qty || 0) <= 3;
-      if (invEditMode) {
-        return `<div class="inv-row" data-inv="${p.id}">
-          <span class="inv-name">${esc(p.name)}</span>
-          <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
-          <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
-        </div>`;
-      }
-      return `<div class="inv-row">
-        <span class="inv-name">${esc(p.name)}${p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>'}</span>
-        <span class="inv-stock ${low ? 'low' : ''}">${p.qty}</span>
+    $(cntId).textContent = arr.length;
+    const low = arr.filter(p => (p.qty || 0) <= 3).length;
+    const hidden = arr.filter(p => !p.exposed).length;
+    const bits = [];
+    if (low) bits.push(`<span class="low">${low} במלאי נמוך</span>`);
+    if (hidden) bits.push(`${hidden} מוסתרים`);
+    $(metaId).innerHTML = bits.join(' · ');
+  });
+}
+
+// מעבר בין מסך הבחירה למסך המחסן
+function showInvPicker() {
+  $('invPicker').style.display = 'block';
+  $('invDetail').style.display = 'none';
+  $('receivePanel').style.display = 'none';
+  renderPicker();
+}
+
+function openInvWarehouse(wh) {
+  invWarehouse = wh;
+  $('invPicker').style.display = 'none';
+  $('invDetail').style.display = 'block';
+  $('invDetailTitle').textContent = WH_LABEL[wh];
+  $('rcWhLabel').textContent = WH_LABEL[wh];
+  $('invSearch').value = '';
+  $('receivePanel').style.display = 'none';
+  renderInventory();
+  window.scrollTo(0, 0);
+}
+
+function renderInventory() {
+  const search = ($('invSearch')?.value || '').trim().toLowerCase();
+  const all = inventory[invWarehouse] || [];
+  const arr = search
+    ? all.filter(p => p.name.toLowerCase().includes(search) ||
+                      (p.category || '').toLowerCase().includes(search))
+    : all;
+
+  if (!all.length) {
+    $('inventoryList').innerHTML = '<div class="admin-empty">אין פריטים במחסן זה</div>';
+    return;
+  }
+  if (!arr.length) {
+    $('inventoryList').innerHTML = '<div class="admin-empty">לא נמצאו פריטים תואמים 🔍</div>';
+    return;
+  }
+
+  const rows = arr.map(p => {
+    const low = (p.qty || 0) <= 3;
+    if (invEditMode) {
+      return `<div class="inv-row" data-inv="${p.id}">
+        <span class="inv-name">${esc(p.name)}</span>
+        <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
+        <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
       </div>`;
-    }).join('');
-    return `<div class="section-title" style="margin-top:16px">${title} — ${arr.length} פריטים</div>${rows}`;
+    }
+    return `<div class="inv-row">
+      <span class="inv-name">${esc(p.name)}${p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>'}</span>
+      <span class="inv-stock ${low ? 'low' : ''}">${p.qty}</span>
+    </div>`;
   }).join('');
-  $('inventoryList').innerHTML = html || '<div class="admin-empty">אין פריטים במלאי</div>';
+
+  const shown = search ? `${arr.length} מתוך ${all.length}` : `${all.length}`;
+  const hidden = all.filter(p => !p.exposed).length;
+  const summary = `${shown} פריטים${hidden ? ` · ${hidden} מוסתרים` : ''}`;
+
+  $('inventoryList').innerHTML =
+    `<div class="section-title" style="margin-top:4px">${esc(WH_LABEL[invWarehouse])} — ${summary}</div>${rows}`;
 }
 
 async function updateInvField(id, patch) {
@@ -256,7 +311,7 @@ async function updateInvField(id, patch) {
 
 async function receiveGoods() {
   const btn = $('rcSubmit');
-  const p_warehouse = $('rcWarehouse').value;
+  const p_warehouse = invWarehouse;          // המחסן שנכנסנו אליו
   const p_name = $('rcName').value.trim();
   const p_qty = parseInt($('rcQty').value, 10) || 0;
   const p_category = $('rcCategory').value.trim();
@@ -355,11 +410,88 @@ async function loadUsers() {
   }
 }
 
-async function setRole(userId, role) {
+async function setRole(userId, role, selectEl) {
   try {
     const { error } = await sb.from('profiles').update({ role }).eq('id', userId);
     if (error) throw error;
-    toast('ההרשאה עודכנה ✓');
+    toast(role === 'admin' ? 'המשתמש הוגדר כמנהל ✓' : 'ההרשאה שונתה למשתמש רגיל ✓');
+  } catch (err) {
+    toast(friendlyError(err), true);
+    if (selectEl) selectEl.value = role === 'admin' ? 'user' : 'admin';  // החזרה למצב הקודם
+  }
+}
+
+// ── כתובות להתראה על הזמנה חדשה ─────────────────────────────
+async function loadNotify() {
+  const el = $('notifyList');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  try {
+    const { data, error } = await sb.from('notify_emails')
+      .select('id, email, label, active')
+      .order('created_at');
+    if (error) throw error;
+
+    if (!data?.length) {
+      el.innerHTML = '<div class="admin-empty">לא הוגדרו כתובות — לא יישלחו התראות 🔕</div>';
+      return;
+    }
+
+    el.innerHTML = `<div class="section-title" style="margin-top:6px">כתובות מוגדרות (${data.length})</div>` +
+      data.map(n => `
+        <div class="user-row" data-notify="${n.id}">
+          <div class="user-info">
+            <div class="user-email">${esc(n.email)}</div>
+            <div class="user-sub">${esc(n.label || '')}${n.active ? '' : ' · מושבת'}</div>
+          </div>
+          <label class="inv-exp"><input type="checkbox" ${n.active ? 'checked' : ''} data-act="toggle"> פעיל</label>
+          <button class="cart-trash-btn" data-act="rm" title="מחק">🗑️</button>
+        </div>`).join('');
+  } catch (err) {
+    el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
+  }
+}
+
+async function addNotify() {
+  const btn = $('nfAdd');
+  const email = $('nfEmail').value.trim();
+  const label = $('nfLabel').value.trim();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    toast('כתובת מייל לא תקינה', true); return;
+  }
+
+  btn.disabled = true; btn.textContent = 'מוסיף...';
+  try {
+    const { error } = await sb.from('notify_emails')
+      .insert({ email: email.toLowerCase(), label: label || null });
+    if (error) throw error;
+    $('nfEmail').value = ''; $('nfLabel').value = '';
+    toast('הכתובת נוספה ✓');
+    loadNotify();
+  } catch (err) {
+    const m = String(err?.message || '');
+    toast(/duplicate|unique/i.test(m) ? 'הכתובת כבר קיימת ברשימה' : friendlyError(err), true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'הוסף כתובת';
+  }
+}
+
+async function toggleNotify(id, active) {
+  try {
+    const { error } = await sb.from('notify_emails').update({ active }).eq('id', id);
+    if (error) throw error;
+    toast(active ? 'הופעל ✓' : 'הושבת');
+    loadNotify();
+  } catch (err) { toast(friendlyError(err), true); }
+}
+
+async function removeNotify(id, email) {
+  if (!confirm(`למחוק את ${email} מרשימת ההתראות?`)) return;
+  try {
+    const { error } = await sb.from('notify_emails').delete().eq('id', id);
+    if (error) throw error;
+    toast('הכתובת נמחקה');
+    loadNotify();
   } catch (err) { toast(friendlyError(err), true); }
 }
 
@@ -381,6 +513,14 @@ export function initAdmin() {
     p.style.display = open ? 'block' : 'none';
     if (open) $('rcName').focus();
   });
+
+  // כניסה למחסן / חזרה לבחירה
+  document.querySelectorAll('.inv-pick-card').forEach(card =>
+    card.addEventListener('click', () => openInvWarehouse(card.dataset.wh)));
+  on('invBackBtn', 'click', showInvPicker);
+
+  // חיפוש במלאי
+  on('invSearch', 'input', renderInventory);
 
   on('editInvBtn', 'click', () => {
     invEditMode = !invEditMode;
@@ -406,7 +546,22 @@ export function initAdmin() {
   // משתמשים — שינוי תפקיד
   on('usersList', 'change', (e) => {
     if (e.target.dataset.act !== 'role') return;
-    setRole(e.target.closest('[data-user]').dataset.user, e.target.value);
+    setRole(e.target.closest('[data-user]').dataset.user, e.target.value, e.target);
+  });
+
+  // התראות
+  on('refreshNotify', 'click', loadNotify);
+  on('nfAdd', 'click', addNotify);
+  on('nfEmail', 'keydown', (e) => { if (e.key === 'Enter') addNotify(); });
+  on('nfLabel', 'keydown', (e) => { if (e.key === 'Enter') addNotify(); });
+  on('notifyList', 'change', (e) => {
+    if (e.target.dataset.act !== 'toggle') return;
+    toggleNotify(+e.target.closest('[data-notify]').dataset.notify, e.target.checked);
+  });
+  on('notifyList', 'click', (e) => {
+    const btn = e.target.closest('[data-act="rm"]'); if (!btn) return;
+    const row = btn.closest('[data-notify]');
+    removeNotify(+row.dataset.notify, row.querySelector('.user-email').textContent);
   });
 
   // פעולות על הזמנות (הזמנות + ארכיון)

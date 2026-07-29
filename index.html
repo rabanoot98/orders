@@ -160,6 +160,7 @@
       <button class="admin-tab" data-pane="archive">ארכיון</button>
       <button class="admin-tab" data-pane="inventory">מלאי</button>
       <button class="admin-tab" data-pane="users">משתמשים</button>
+      <button class="admin-tab" data-pane="notify">התראות</button>
     </div>
 
     <div class="admin-pane active" id="ordersPane">
@@ -179,33 +180,64 @@
     </div>
 
     <div class="admin-pane" id="inventoryPane">
-      <div class="admin-toolbar">
-        <h3>מלאי</h3>
-        <div class="toolbar-btns">
-          <button class="icon-btn" style="background:var(--success)" id="receiveToggle">➕ קליטת סחורה</button>
-          <button class="icon-btn" style="background:var(--accent2)" id="editInvBtn">✎ עריכה</button>
-          <button class="icon-btn" style="background:#1d7a4c" id="exportBtn">⬇ אקסל</button>
-          <button class="icon-btn" id="refreshInv">↻</button>
+      <!-- בחירת מחסן -->
+      <div id="invPicker">
+        <div class="admin-toolbar">
+          <h3>מלאי</h3>
+          <div class="toolbar-btns">
+            <button class="icon-btn" style="background:#1d7a4c" id="exportBtn">⬇ אקסל</button>
+            <button class="icon-btn" id="refreshInv">↻ רענן</button>
+          </div>
+        </div>
+
+        <div class="inv-picker-grid">
+          <div class="inv-pick-card main" data-wh="main">
+            <div class="inv-pick-icon">📦</div>
+            <div class="inv-pick-title">מחסן דת</div>
+            <div class="inv-pick-count"><span id="cntMain">–</span> פריטים</div>
+            <div class="inv-pick-meta" id="metaMain"></div>
+            <div class="inv-pick-arrow">‹</div>
+          </div>
+          <div class="inv-pick-card zuk" data-wh="zuk">
+            <div class="inv-pick-icon">🪖</div>
+            <div class="inv-pick-title">ציוד זו"ק</div>
+            <div class="inv-pick-count"><span id="cntZuk">–</span> פריטים</div>
+            <div class="inv-pick-meta" id="metaZuk"></div>
+            <div class="inv-pick-arrow">‹</div>
+          </div>
         </div>
       </div>
+
+      <!-- מלאי של מחסן בודד -->
+      <div id="invDetail" style="display:none">
+        <div class="admin-toolbar">
+          <button class="icon-btn" id="invBackBtn" style="background:var(--text-light)">← מחסנים</button>
+          <h3 id="invDetailTitle">מחסן דת</h3>
+          <div class="toolbar-btns">
+            <button class="icon-btn" style="background:var(--success)" id="receiveToggle">➕ קליטה</button>
+            <button class="icon-btn" style="background:var(--accent2)" id="editInvBtn">✎ עריכה</button>
+          </div>
+        </div>
+
+        <div class="search-bar" style="margin-bottom:14px">
+          <span>🔍</span>
+          <input type="text" id="invSearch" placeholder="חיפוש פריט במלאי...">
+        </div>
 
       <div class="receive-panel" id="receivePanel" style="display:none">
         <div class="section-title">קליטת סחורה</div>
         <div class="rc-grid">
-          <select id="rcWarehouse" class="field">
-            <option value="main">מחסן דת</option>
-            <option value="zuk">ציוד זו"ק</option>
-          </select>
           <input type="text" id="rcName" class="field" placeholder="שם המוצר">
           <input type="number" id="rcQty" class="field" placeholder="כמות" min="1" value="1">
           <input type="text" id="rcCategory" class="field" placeholder="קטגוריה (לא חובה)">
         </div>
         <label class="rc-check"><input type="checkbox" id="rcExposed" checked> חשוף להזמנות (יופיע ללקוחות)</label>
         <button class="btn-block solid" id="rcSubmit">קלוט סחורה</button>
-        <div class="rc-hint">אם השם תואם למוצר קיים — הכמות תתווסף.<br>אחרת ייווצר מוצר חדש.</div>
+        <div class="rc-hint">הפריט ייקלט אל <strong id="rcWhLabel">מחסן דת</strong>.<br>אם השם תואם למוצר קיים — הכמות תתווסף; אחרת ייווצר מוצר חדש.</div>
       </div>
 
-      <div id="inventoryList"></div>
+        <div id="inventoryList"></div>
+      </div>
     </div>
 
     <div class="admin-pane" id="usersPane">
@@ -213,7 +245,31 @@
         <h3>משתמשים והרשאות</h3>
         <button class="icon-btn" id="refreshUsers">↻ רענן</button>
       </div>
+      <div class="rc-hint" style="text-align:right;margin:0 0 12px">
+        שינוי הרשאה ל־<strong>מנהל</strong> מקנה גישה מלאה: הזמנות, מלאי, משתמשים והתראות.
+      </div>
       <div id="usersList"></div>
+    </div>
+
+    <div class="admin-pane" id="notifyPane">
+      <div class="admin-toolbar">
+        <h3>התראות על הזמנה חדשה</h3>
+        <button class="icon-btn" id="refreshNotify">↻ רענן</button>
+      </div>
+      <div class="rc-hint" style="text-align:right;margin:0 0 12px">
+        הכתובות הבאות יקבלו מייל בכל פעם שנכנסת הזמנה חדשה.
+      </div>
+
+      <div class="receive-panel" style="border-color:var(--success)">
+        <div class="section-title">הוספת כתובת</div>
+        <div class="rc-grid">
+          <input type="email" id="nfEmail" class="field" placeholder="כתובת מייל" inputmode="email">
+          <input type="text" id="nfLabel" class="field" placeholder="תיאור (לא חובה)">
+        </div>
+        <button class="btn-block solid" id="nfAdd">הוסף כתובת</button>
+      </div>
+
+      <div id="notifyList"></div>
     </div>
   </div>
 

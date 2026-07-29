@@ -565,6 +565,47 @@ input.qty-display:focus { outline: 1px solid var(--accent2); border-radius: 4px;
 .inv-exp { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-light); white-space: nowrap; cursor: pointer; }
 .inv-exp input { width: 20px; height: 20px; accent-color: var(--success); cursor: pointer; }
 
+/* ── בחירת מחסן במלאי (כרטיסים קטנים) ── */
+.inv-picker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.inv-pick-card {
+  position: relative;
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 14px 16px;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: all .2s cubic-bezier(.34,1.56,.64,1);
+}
+.inv-pick-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+.inv-pick-card:active { transform: scale(.97); }
+.inv-pick-card.main:hover { border-color: var(--accent2); }
+.inv-pick-card.zuk:hover  { border-color: var(--zuk-accent); }
+
+.inv-pick-icon {
+  width: 46px; height: 46px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; margin: 0 auto 10px;
+}
+.inv-pick-card.main .inv-pick-icon { background: #1c1c2e12; }
+.inv-pick-card.zuk  .inv-pick-icon { background: #3a9e6f15; }
+
+.inv-pick-title { font-size: .95rem; font-weight: 800; margin-bottom: 3px; }
+.inv-pick-count { font-size: .8rem; color: var(--text-light); font-weight: 600; }
+.inv-pick-meta {
+  font-size: .71rem; color: var(--text-light);
+  margin-top: 6px; line-height: 1.5; min-height: 1em;
+}
+.inv-pick-meta .low { color: var(--accent); font-weight: 700; }
+.inv-pick-arrow {
+  position: absolute; top: 14px; left: 14px;
+  font-size: 1.15rem; color: var(--text-light); opacity: .35;
+}
+
+#invDetail .admin-toolbar h3 { flex: 1; text-align: center; }
+
 .receive-panel {
   background: var(--surface); border: 1.5px solid var(--accent2);
   border-radius: var(--radius); padding: 16px; margin-bottom: 16px; box-shadow: var(--shadow);
