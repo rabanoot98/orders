@@ -2,984 +2,33 @@
 <html lang="he" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מערכת הזמנות ציוד דת</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800;900&display=swap');
-
-  :root {
-    /* Main warehouse */
-    --bg: #f0ede8;
-    --surface: #ffffff;
-    --primary: #1c1c2e;
-    --accent: #e63946;
-    --accent2: #457b9d;
-    --text: #1c1c2e;
-    --text-light: #7c7c8e;
-    --border: #e2ddd8;
-    --success: #2d6a4f;
-
-    /* Zuk warehouse */
-    --zuk-primary: #1a3a2e;
-    --zuk-accent: #3a9e6f;
-    --zuk-accent2: #2d7a56;
-    --zuk-bg: #eaf4ef;
-
-    --radius: 14px;
-    --radius-sm: 8px;
-    --shadow: 0 2px 16px rgba(0,0,0,0.08);
-    --shadow-lg: 0 8px 32px rgba(0,0,0,0.14);
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'Heebo', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    direction: rtl;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  /* ── HEADER ── */
-  header {
-    background: var(--primary);
-    color: white;
-    padding: 18px 20px;
-    text-align: center;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.2);
-  }
-
-  header.zuk-mode { background: var(--zuk-primary); }
-
-  .header-inner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-
-  header h1 {
-    font-size: 1.15rem;
-    font-weight: 800;
-    letter-spacing: 0.3px;
-  }
-
-  .back-btn {
-    position: absolute;
-    right: 0;
-    background: rgba(255,255,255,0.12);
-    border: none;
-    color: white;
-    border-radius: 20px;
-    padding: 6px 14px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    display: none;
-  }
-
-  .back-btn:hover { background: rgba(255,255,255,0.2); }
-  .back-btn.visible { display: block; }
-
-  .cart-badge {
-    position: absolute;
-    left: 0;
-    background: var(--accent);
-    color: white;
-    border-radius: 20px;
-    padding: 6px 13px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: transform 0.15s, opacity 0.2s;
-    white-space: nowrap;
-  }
-
-  .cart-badge.zuk { background: var(--zuk-accent); }
-  .cart-badge:active { transform: scale(0.95); }
-
-  /* ── CONTAINER ── */
-  .container { max-width: 680px; margin: 0 auto; padding: 20px 16px 100px; }
-
-  /* ── HOME SCREEN ── */
-  .home-screen { padding-top: 30px; }
-
-  .home-welcome {
-    text-align: center;
-    margin-bottom: 36px;
-  }
-
-  .home-welcome h2 {
-    font-size: 1.6rem;
-    font-weight: 900;
-    color: var(--text);
-    letter-spacing: -0.5px;
-    margin-bottom: 8px;
-  }
-
-  .home-welcome p {
-    color: var(--text-light);
-    font-size: 0.95rem;
-    font-weight: 400;
-  }
-
-  .warehouse-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-
-  .warehouse-card {
-    background: var(--surface);
-    border-radius: 18px;
-    padding: 28px 20px 24px;
-    border: 2px solid var(--border);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.22s cubic-bezier(.34,1.56,.64,1);
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .warehouse-card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 0.2s;
-  }
-
-  .warehouse-card.main::before { background: linear-gradient(135deg, #1c1c2e08, #457b9d14); }
-  .warehouse-card.zuk::before  { background: linear-gradient(135deg, #1a3a2e08, #3a9e6f14); }
-
-  .warehouse-card:hover {
-    transform: translateY(-4px) scale(1.01);
-    box-shadow: var(--shadow-lg);
-    border-color: transparent;
-  }
-
-  .warehouse-card:active { transform: scale(0.97); }
-  .warehouse-card.main:hover { border-color: var(--accent2); }
-  .warehouse-card.zuk:hover  { border-color: var(--zuk-accent); }
-
-  .wh-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.9rem;
-    margin: 0 auto 14px;
-  }
-
-  .warehouse-card.main .wh-icon { background: #1c1c2e12; }
-  .warehouse-card.zuk .wh-icon  { background: #3a9e6f15; }
-
-  .wh-title { font-size: 1rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-  .wh-sub   { font-size: 0.78rem; color: var(--text-light); font-weight: 400; }
-  .wh-arrow { margin-top: 14px; font-size: 1.1rem; opacity: 0.3; }
-
-  /* ── FORM SCREENS ── */
-  .form-screen { display: none; }
-  .form-screen.active { display: block; }
-
-  .customer-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 20px;
-    margin-bottom: 16px;
-    border: 1.5px solid var(--border);
-    box-shadow: var(--shadow);
-  }
-
-  .customer-card h2 {
-    font-size: 0.82rem;
-    font-weight: 700;
-    margin-bottom: 12px;
-    color: var(--text-light);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-
-  .input-group { display: flex; flex-direction: column; gap: 10px; }
-
-  input[type="text"] {
-    width: 100%;
-    padding: 13px 15px;
-    border: 1.5px solid var(--border);
-    border-radius: var(--radius-sm);
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.97rem;
-    direction: rtl;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, opacity 0.2s;
-    background: #fafaf8;
-    color: var(--text);
-  }
-
-  input[type="text"]:focus {
-    border-color: var(--accent2);
-    box-shadow: 0 0 0 3px rgba(69,123,157,0.1);
-    background: white;
-  }
-
-  input[type="text"]:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    background: #f1f0ee;
-  }
-
-  .form-screen.zuk-mode input[type="text"]:focus {
-    border-color: var(--zuk-accent);
-    box-shadow: 0 0 0 3px rgba(58,158,111,0.1);
-  }
-
-  .search-bar {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 13px 16px;
-    margin-bottom: 12px;
-    border: 1.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    box-shadow: var(--shadow);
-  }
-
-  .search-bar input {
-    flex: 1;
-    border: none;
-    background: none;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.97rem;
-    direction: rtl;
-    outline: none;
-  }
-
-  .search-icon { color: var(--text-light); font-size: 1.1rem; }
-
-  .categories {
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding-bottom: 8px;
-    margin-bottom: 14px;
-    scrollbar-width: none;
-    flex-direction: row-reverse;
-  }
-
-  .categories::-webkit-scrollbar { display: none; }
-
-  .cat-btn {
-    white-space: nowrap;
-    padding: 7px 15px;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.18s;
-    color: var(--text-light);
-  }
-
-  .cat-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
-  .form-screen.zuk-mode .cat-btn.active { background: var(--zuk-primary); border-color: var(--zuk-primary); }
-
-  .products-list { display: flex; flex-direction: column; gap: 9px; }
-
-  .product-card {
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 15px 16px;
-    border: 1.5px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-shadow: var(--shadow);
-  }
-
-  .product-card.in-cart {
-    border-color: var(--accent2);
-    box-shadow: 0 0 0 1.5px var(--accent2), var(--shadow);
-  }
-
-  .form-screen.zuk-mode .product-card.in-cart {
-    border-color: var(--zuk-accent);
-    box-shadow: 0 0 0 1.5px var(--zuk-accent), var(--shadow);
-  }
-
-  .product-name { font-weight: 600; font-size: 0.92rem; flex: 1; line-height: 1.3; }
-  .product-cat  { font-size: 0.75rem; color: var(--text-light); margin-top: 2px; }
-
-  .qty-control { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
-
-  .qty-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: var(--bg);
-    font-size: 1.15rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    color: var(--text);
-    line-height: 1;
-  }
-
-  .qty-btn:active { transform: scale(0.88); }
-  .qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .qty-btn.plus { background: var(--primary); color: white; border-color: var(--primary); }
-  .form-screen.zuk-mode .qty-btn.plus { background: var(--zuk-primary); border-color: var(--zuk-primary); }
-  .qty-btn.plus:disabled { background: var(--border); border-color: var(--border); cursor: not-allowed; }
-
-  .qty-display { font-weight: 700; font-size: 0.97rem; min-width: 34px; width: 34px; text-align: center; }
-
-  input.qty-display {
-    border: none;
-    background: none;
-    font-family: 'Heebo', sans-serif;
-    font-weight: 700;
-    font-size: 0.97rem;
-    padding: 0;
-    color: var(--text);
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
-
-  input.qty-display::-webkit-outer-spin-button,
-  input.qty-display::-webkit-inner-spin-button { -webkit-appearance: none; }
-  input.qty-display:focus { outline: 1px solid var(--accent2); border-radius: 4px; }
-
-  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); font-size: 0.95rem; }
-
-  .loading { text-align: center; padding: 40px; color: var(--text-light); }
-
-  .spinner {
-    width: 34px;
-    height: 34px;
-    border: 3px solid var(--border);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 0.75s linear infinite;
-    margin: 0 auto 12px;
-  }
-
-  .form-screen.zuk-mode .spinner { border-top-color: var(--zuk-accent); }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  /* ── CART DRAWER ── */
-  .cart-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 200;
-    backdrop-filter: blur(2px);
-  }
-
-  .cart-overlay.open { display: block; }
-
-  .cart-drawer {
-    position: fixed;
-    bottom: 0;
-    right: 0;
-    left: 0;
-    background: white;
-    border-radius: 22px 22px 0 0;
-    padding: 24px 20px 44px;
-    max-height: 80vh;
-    overflow-y: auto;
-    z-index: 201;
-    transform: translateY(100%);
-    transition: transform 0.32s cubic-bezier(.32,1,.26,1);
-    box-shadow: 0 -8px 40px rgba(0,0,0,0.18);
-  }
-
-  .cart-overlay.open .cart-drawer { transform: translateY(0); }
-
-  .cart-handle {
-    width: 36px;
-    height: 4px;
-    background: var(--border);
-    border-radius: 4px;
-    margin: 0 auto 20px;
-  }
-
-  .cart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 18px;
-  }
-
-  .cart-header h2 { font-size: 1.15rem; font-weight: 800; }
-
-  .close-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: none;
-    background: var(--bg);
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-light);
-    transition: background 0.15s;
-  }
-
-  .close-btn:hover { background: var(--border); }
-
-  /* ── CART ITEM (editable) ── */
-  .cart-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .cart-item-info { flex: 1; min-width: 0; }
-  .cart-item-name { font-weight: 600; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .cart-item-sub  { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
-
-  .cart-item-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-  }
-
-  .cart-qty-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 1.5px solid var(--border);
-    background: var(--bg);
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    color: var(--text);
-    line-height: 1;
-    flex-shrink: 0;
-  }
-
-  .cart-qty-btn:active { transform: scale(0.88); }
-  .cart-qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-  .cart-qty-btn.plus {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-  }
-
-  .cart-qty-btn.plus.zuk-btn {
-    background: var(--zuk-primary);
-    border-color: var(--zuk-primary);
-  }
-
-  .cart-qty-btn.plus:disabled { background: var(--border); border-color: var(--border); }
-
-  .cart-qty-num {
-    font-weight: 700;
-    font-size: 0.95rem;
-    min-width: 28px;
-    text-align: center;
-  }
-
-  .cart-trash-btn {
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    border: none;
-    background: #fee2e2;
-    color: #dc2626;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    margin-right: 2px;
-    flex-shrink: 0;
-  }
-
-  .cart-trash-btn:hover  { background: #fca5a5; }
-  .cart-trash-btn:active { transform: scale(0.88); }
-
-  .cart-empty { text-align: center; color: var(--text-light); padding: 30px 0; }
-
-  .submit-btn {
-    width: 100%;
-    margin-top: 18px;
-    padding: 15px;
-    background: var(--accent);
-    color: white;
-    border: none;
-    border-radius: var(--radius);
-    font-family: 'Heebo', sans-serif;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity 0.2s, transform 0.15s;
-    letter-spacing: 0.2px;
-  }
-
-  .submit-btn.zuk { background: var(--zuk-accent); }
-  .submit-btn:hover { opacity: 0.88; }
-  .submit-btn:active { transform: scale(0.98); }
-  .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-  /* ── SUCCESS ── */
-  .success-screen { display: none; text-align: center; padding: 70px 20px 40px; }
-  .success-screen.show { display: block; }
-  .form-screen.hide { display: none !important; }
-  .home-screen.hide { display: none !important; }
-
-  .success-icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 2rem;
-  }
-
-  .success-icon.main { background: #d1fae5; color: var(--success); }
-  .success-icon.zuk  { background: #d1fae5; color: var(--zuk-accent2); }
-
-  .success-screen h2 { font-size: 1.5rem; font-weight: 900; margin-bottom: 10px; }
-  .success-screen p  { color: var(--text-light); font-size: 0.97rem; line-height: 1.7; }
-
-  .new-order-btn {
-    margin-top: 28px;
-    padding: 13px 28px;
-    border: 2px solid var(--primary);
-    background: transparent;
-    border-radius: 30px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: var(--text);
-  }
-
-  .new-order-btn:hover { background: var(--primary); color: white; }
-
-  .error-msg {
-    background: #fee2e2;
-    color: #991b1b;
-    border-radius: var(--radius-sm);
-    padding: 10px 14px;
-    font-size: 0.88rem;
-    margin-top: 10px;
-    display: none;
-  }
-
-  .section-title {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: var(--text-light);
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    margin-bottom: 10px;
-    margin-top: 2px;
-  }
-
-  header.zuk-mode .cart-badge { background: var(--zuk-accent); }
-
-  /* ── ACCOUNT (header left) ── */
-  .header-left {
-    position: absolute;
-    left: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .header-left .cart-badge { position: static; }
-  .account-badge {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .menu-btn {
-    background: rgba(255,255,255,0.14);
-    border: none;
-    color: white;
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    font-size: 1.15rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.18s;
-    flex-shrink: 0;
-  }
-  .menu-btn:hover { background: rgba(255,255,255,0.24); }
-  .account-menu {
-    display: none;
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 0;
-    min-width: 190px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: var(--shadow-lg);
-    padding: 8px;
-    z-index: 250;
-    overflow: hidden;
-  }
-  .account-menu.open { display: block; animation: menuPop 0.16s ease; }
-  @keyframes menuPop { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-  .account-menu-name {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--text-light);
-    padding: 8px 12px 10px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 6px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .account-menu-item {
-    display: block;
-    width: 100%;
-    text-align: right;
-    background: none;
-    border: none;
-    border-radius: 9px;
-    padding: 12px 12px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text);
-    cursor: pointer;
-    transition: background 0.15s;
-  }
-  .account-menu-item:hover { background: var(--bg); }
-  .account-menu-item.logout { color: var(--accent); }
-  .account-name {
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: rgba(255,255,255,0.85);
-    max-width: 130px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .icon-btn {
-    background: rgba(255,255,255,0.12);
-    border: none;
-    color: white;
-    border-radius: 20px;
-    padding: 6px 12px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-    white-space: nowrap;
-  }
-  .icon-btn:hover { background: rgba(255,255,255,0.22); }
-  .icon-btn.admin { background: var(--accent2); }
-  .icon-btn.admin:hover { background: #3a6a88; }
-
-  /* ── LOGIN SCREEN ── */
-  .login-screen { display: none; padding-top: 46px; }
-  .login-screen.active { display: block; }
-  .login-card {
-    background: var(--surface);
-    border-radius: 20px;
-    padding: 34px 24px 28px;
-    border: 1.5px solid var(--border);
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-    max-width: 380px;
-    margin: 0 auto;
-  }
-  .login-logo { font-size: 2.6rem; margin-bottom: 10px; }
-  .login-card h2 { font-size: 1.4rem; font-weight: 900; margin-bottom: 6px; }
-  .login-card p { color: var(--text-light); font-size: 0.9rem; margin-bottom: 24px; }
-  .login-divider {
-    display: flex; align-items: center; gap: 10px;
-    color: var(--text-light); font-size: 0.8rem; margin: 20px 0;
-  }
-  .login-divider::before, .login-divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--border);
-  }
-  #gsiButton { display: flex; justify-content: center; }
-  .btn-block {
-    width: 100%;
-    padding: 13px;
-    border-radius: var(--radius);
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.97rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.18s;
-    border: 1.5px solid var(--border);
-    background: var(--surface);
-    color: var(--text);
-  }
-  .btn-block:hover { border-color: var(--accent2); }
-  .btn-block.solid { background: var(--primary); color: white; border-color: var(--primary); }
-  .btn-block.solid:hover { opacity: 0.9; }
-  .btn-block + .btn-block { margin-top: 10px; }
-  .login-note {
-    margin-top: 18px; font-size: 0.76rem; color: var(--text-light); line-height: 1.5;
-  }
-  .mock-banner {
-    background: #fff3cd; color: #7a5b00; border: 1px solid #ffe08a;
-    border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.8rem;
-    font-weight: 600; margin: 0 auto 16px; max-width: 380px; text-align: center;
-  }
-  .admin-corner {
-    position: fixed;
-    top: 10px;
-    right: 12px;
-    z-index: 400;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.32);
-    color: #ffffff;
-    border-radius: 20px;
-    padding: 6px 13px;
-    font-family: 'Heebo', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: background 0.18s;
-  }
-  .admin-corner:hover { background: rgba(255,255,255,0.3); }
-
-  /* ── ADMIN DASHBOARD ── */
-  .admin-screen { display: none; }
-  .admin-screen.active { display: block; }
-  .myorders-screen { display: none; }
-  .myorders-screen.active { display: block; }
-  .admin-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
-  .admin-tab {
-    flex: 1; padding: 10px; border-radius: var(--radius-sm);
-    border: 1.5px solid var(--border); background: var(--surface);
-    font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700;
-    cursor: pointer; color: var(--text-light); transition: all 0.18s;
-  }
-  .admin-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
-  .admin-pane { display: none; }
-  .admin-pane.active { display: block; }
-  .admin-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-  .admin-toolbar h3 { font-size: 1.05rem; font-weight: 800; }
-
-  .order-card {
-    background: var(--surface); border-radius: var(--radius);
-    border: 1.5px solid var(--border); box-shadow: var(--shadow);
-    padding: 14px 16px; margin-bottom: 12px;
-  }
-  .order-card.approved { border-color: var(--success); box-shadow: 0 0 0 1.5px var(--success), var(--shadow); }
-  .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-  .order-meta { flex: 1; min-width: 0; }
-  .order-customer { font-weight: 800; font-size: 1rem; }
-  .order-sub { font-size: 0.78rem; color: var(--text-light); margin-top: 2px; }
-  .order-status {
-    font-size: 0.72rem; font-weight: 700; padding: 4px 10px; border-radius: 12px;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .order-status.pending { background: #FFF176; color: #6b5900; }
-  .order-status.approved { background: #A5D6A7; color: #1b4332; }
-  .order-status.missing { background: #EF9A9A; color: #7f1d1d; }
-  .order-wh { font-size: 0.72rem; color: var(--text-light); }
-
-  .order-items { border-top: 1px dashed var(--border); padding-top: 8px; }
-  .order-item-row {
-    display: flex; align-items: center; gap: 8px; padding: 6px 0;
-  }
-  .order-item-name { flex: 1; font-size: 0.9rem; font-weight: 600; min-width: 0; }
-  .oi-qty-btn {
-    width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--border);
-    background: var(--bg); font-size: 0.95rem; font-weight: 700; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; color: var(--text); line-height: 1;
-  }
-  .oi-qty-btn:active { transform: scale(0.88); }
-  .oi-qty { font-weight: 700; font-size: 0.9rem; min-width: 26px; text-align: center; }
-
-  .order-actions { display: flex; gap: 8px; margin-top: 12px; }
-  .order-actions button {
-    flex: 1; padding: 10px; border-radius: var(--radius-sm);
-    font-family: 'Heebo', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer;
-    border: none; transition: opacity 0.18s;
-  }
-  .btn-approve { background: var(--success); color: white; }
-  .btn-approve:disabled { opacity: 0.45; cursor: not-allowed; }
-  .btn-delete { background: #fee2e2; color: #dc2626; flex: 0 0 auto !important; padding: 10px 14px !important; }
-  .btn-approve:hover { opacity: 0.9; }
-
-  .admin-empty { text-align: center; padding: 40px 20px; color: var(--text-light); }
-
-  .user-row {
-    display: flex; align-items: center; gap: 10px; padding: 12px 0;
-    border-bottom: 1px solid var(--border);
-  }
-  .user-info { flex: 1; min-width: 0; }
-  .user-email { font-weight: 700; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .user-sub { font-size: 0.75rem; color: var(--text-light); }
-  .role-select {
-    padding: 6px 10px; border-radius: var(--radius-sm); border: 1.5px solid var(--border);
-    font-family: 'Heebo', sans-serif; font-size: 0.82rem; background: var(--surface); cursor: pointer;
-  }
-
-  .inv-row {
-    display: flex; justify-content: space-between; align-items: center; gap: 10px;
-    padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;
-  }
-  .inv-row .inv-stock { font-weight: 800; }
-  .inv-row .inv-stock.low { color: var(--accent); }
-  .inv-row .inv-name { flex: 1; min-width: 0; }
-  .inv-hidden-tag {
-    display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--text-light);
-    background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
-    padding: 1px 8px; margin-right: 6px;
-  }
-  .inv-qty-input {
-    width: 68px; padding: 7px 9px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-    font-family: 'Heebo', sans-serif; font-size: 0.9rem; font-weight: 700; text-align: center;
-    background: #fafaf8; color: var(--text); -moz-appearance: textfield; appearance: textfield;
-  }
-  .inv-qty-input::-webkit-outer-spin-button, .inv-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .inv-qty-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
-  .inv-exp { display: flex; align-items: center; gap: 5px; font-size: 0.8rem; color: var(--text-light); white-space: nowrap; cursor: pointer; }
-  .inv-exp input { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; }
-
-  /* ── RECEIVE GOODS PANEL ── */
-  .receive-panel {
-    background: var(--surface); border: 1.5px solid var(--accent2);
-    border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
-    box-shadow: var(--shadow);
-  }
-  .rc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-  .rc-input {
-    width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-    font-family: 'Heebo', sans-serif; font-size: 0.92rem; direction: rtl; background: #fafaf8; color: var(--text);
-  }
-  .rc-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
-  select.rc-input { cursor: pointer; }
-  .rc-check { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; margin: 4px 0 14px; cursor: pointer; }
-  .rc-check input { width: 18px; height: 18px; accent-color: var(--success); cursor: pointer; }
-  .rc-hint { font-size: 0.76rem; color: var(--text-light); margin-top: 10px; text-align: center; line-height: 1.5; }
-  .admin-toolbar .toolbar-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-  .icon-btn.on { background: var(--accent) !important; }
-
-  .toast {
-    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: var(--primary); color: white; padding: 12px 22px; border-radius: 30px;
-    font-size: 0.9rem; font-weight: 600; box-shadow: var(--shadow-lg); z-index: 500;
-    opacity: 0; transition: all 0.3s; pointer-events: none; max-width: 90%; text-align: center;
-  }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .toast.err { background: var(--accent); }
-
-  /* ── SUPPLIER CONFIRM MODAL ── */
-  .confirm-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.55);
-    z-index: 300;
-    backdrop-filter: blur(3px);
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-  }
-  .confirm-overlay.open { display: flex; }
-  .confirm-box {
-    background: var(--surface);
-    border-radius: 20px;
-    padding: 30px 24px 24px;
-    max-width: 380px;
-    width: 100%;
-    text-align: center;
-    box-shadow: var(--shadow-lg);
-    animation: confirmPop 0.25s cubic-bezier(.34,1.56,.64,1);
-  }
-  @keyframes confirmPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-  .confirm-icon {
-    width: 66px; height: 66px; border-radius: 50%;
-    background: #fff3cd; color: #7a5b00;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.9rem; margin: 0 auto 18px;
-  }
-  .confirm-text { font-size: 1.05rem; font-weight: 600; color: var(--text); line-height: 1.5; }
-  .confirm-strong {
-    font-size: 1.12rem; font-weight: 900; color: var(--accent);
-    margin-top: 12px; line-height: 1.4;
-  }
-  .confirm-actions { display: flex; flex-direction: column; gap: 10px; margin-top: 26px; }
-  .confirm-yes {
-    width: 100%; padding: 15px; border: none; border-radius: var(--radius);
-    background: var(--success); color: white;
-    font-family: 'Heebo', sans-serif; font-size: 1rem; font-weight: 800; cursor: pointer;
-    transition: opacity 0.18s, transform 0.15s;
-  }
-  .confirm-yes:hover { opacity: 0.9; }
-  .confirm-yes:active { transform: scale(0.98); }
-  .confirm-cancel {
-    width: 100%; padding: 13px; border: 1.5px solid var(--border); border-radius: var(--radius);
-    background: transparent; color: var(--text-light);
-    font-family: 'Heebo', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer;
-    transition: background 0.18s;
-  }
-  .confirm-cancel:hover { background: var(--bg); }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>מערכת הזמנות ציוד דת — רבנות אוגדה 98</title>
+<link rel="icon" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="theme-color" content="#1c1c2e">
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <header id="mainHeader">
   <div class="header-inner">
-    <button class="back-btn" id="backBtn" onclick="goHome()">← חזרה</button>
-    <h1 id="headerTitle">מערכת הזמנות</h1>
-    <div class="header-left">
-      <div class="cart-badge" id="cartBadge" style="display:none" onclick="openCart()">
-        🛒 <span id="cartCount">0</span>
-      </div>
-      <div class="account-badge" id="accountBadge" style="display:none">
-        <button class="menu-btn" id="accountMenuBtn" onclick="toggleAccountMenu(event)" aria-label="תפריט">☰</button>
+    <img src="logo.png" alt="רבנות אוגדה 98" class="header-logo">
+    <div class="header-titles">
+      <h1 id="headerTitle">מערכת הזמנות</h1>
+      <div class="header-sub" id="headerSub">רבנות אוגדה 98</div>
+    </div>
+    <div class="header-actions">
+      <button class="back-btn" id="backBtn">← חזרה</button>
+      <button class="cart-badge" id="cartBadge" style="display:none">🛒 <span id="cartCount">0</span></button>
+      <div class="account-wrap" id="accountWrap" style="display:none">
+        <button class="menu-btn" id="accountMenuBtn" aria-label="תפריט">☰</button>
         <div class="account-menu" id="accountMenu">
           <div class="account-menu-name" id="accountName"></div>
-          <button class="account-menu-item" id="myOrdersBtn" style="display:none" onclick="openMyOrders()">📋 ההזמנות שלי</button>
-          <button class="account-menu-item" id="adminBtn" style="display:none" onclick="openAdmin()">🛠️ ניהול</button>
-          <button class="account-menu-item logout" id="logoutBtn" onclick="logout()">🚪 יציאה</button>
+          <button class="account-menu-item" id="myOrdersBtn" style="display:none">📋 ההזמנות שלי</button>
+          <button class="account-menu-item" id="adminBtn" style="display:none">🛠️ ניהול</button>
+          <button class="account-menu-item" id="profileBtn" style="display:none">✏️ הפרטים שלי</button>
+          <button class="account-menu-item logout" id="logoutBtn">🚪 יציאה</button>
         </div>
       </div>
     </div>
@@ -988,152 +37,172 @@
 
 <div class="container">
 
-  <!-- LOGIN -->
-  <div class="mock-banner" id="mockBanner" style="display:none">מצב בדיקה מקומי — נתונים לדוגמה בלבד</div>
-  <div class="login-screen" id="loginScreen">
-    <button class="admin-corner" id="adminCornerBtn" onclick="adminEntry()">🔑 מנהל</button>
-    <div class="login-card">
-      <div class="login-logo">📦</div>
-      <h2>מערכת הזמנות ציוד דת</h2>
-      <p>התחבר כדי להמשיך</p>
-      <div id="gsiButton"></div>
-      <div id="mockLoginButtons" style="display:none">
-        <button class="btn-block solid" onclick="mockLogin('user')">התחבר כמשתמש (בדיקה)</button>
-      </div>
-      <div class="login-divider">או</div>
-      <button class="btn-block" onclick="enterAsGuest()">המשך כאורח</button>
-      <div class="login-note">
-        התחברות עם חשבון Google יוצרת עבורך משתמש ושומרת אותו במערכת.<br>
-        כאורח ניתן להזמין ללא חשבון.
-      </div>
+  <!-- ══ CONFIG MISSING ══ -->
+  <div class="screen" id="configScreen">
+    <div class="config-box">
+      <h3>⚙️ נדרשת הגדרה ראשונית</h3>
+      <p>כדי שהמערכת תעבוד, יש למלא את פרטי החיבור ל-Supabase בקובץ <code>config.js</code>:</p>
+      <p style="margin-top:10px">
+        <code>SUPABASE_URL</code> ו-<code>SUPABASE_ANON_KEY</code><br>
+        נמצאים ב-Supabase → Project Settings → API
+      </p>
     </div>
   </div>
 
-  <!-- HOME -->
-  <div class="home-screen" id="homeScreen">
+  <!-- ══ LOGIN ══ -->
+  <div class="screen" id="loginScreen">
+    <div class="login-card">
+      <img src="logo.png" alt="רבנות אוגדה 98" class="login-logo">
+      <h2>מערכת הזמנות ציוד דת</h2>
+      <div class="sub">רבנות אוגדה 98</div>
+
+      <button class="btn-block google" id="googleBtn">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24s.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        התחבר עם Google
+      </button>
+
+      <div class="login-divider">או</div>
+
+      <input type="email" class="field" id="authEmail" placeholder="אימייל" autocomplete="email">
+      <input type="password" class="field" id="authPassword" placeholder="סיסמה (6 תווים לפחות)" autocomplete="current-password">
+      <div class="form-error" id="authError"></div>
+      <button class="btn-block solid" id="authSubmitBtn" style="margin-top:12px">התחבר</button>
+      <button class="link-btn" id="authToggleBtn">אין לי משתמש — הרשמה</button>
+
+      <div class="login-divider">או</div>
+      <button class="btn-block" id="guestBtn">המשך כאורח</button>
+      <div class="login-note">כאורח תתבקש למלא שם וטלפון בכל הזמנה.</div>
+    </div>
+  </div>
+
+  <!-- ══ ONBOARDING (initials + phone) ══ -->
+  <div class="screen" id="onboardScreen">
+    <div class="login-card">
+      <img src="logo.png" alt="" class="login-logo">
+      <h2 id="onboardTitle">כמה פרטים אחרונים</h2>
+      <div class="sub" id="onboardSub">נשמור אותם כדי שלא תצטרך למלא בכל הזמנה</div>
+      <input type="text" class="field" id="obInitials" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *">
+      <input type="tel" class="field" id="obPhone" placeholder="מס' טלפון *" inputmode="tel">
+      <div class="form-error" id="obError"></div>
+      <button class="btn-block solid" id="obSaveBtn" style="margin-top:14px">שמור והמשך</button>
+    </div>
+  </div>
+
+  <!-- ══ HOME ══ -->
+  <div class="screen" id="homeScreen">
     <div class="home-welcome">
       <h2>מה תרצה להזמין?</h2>
       <p>בחר מאיזה מחסן ברצונך להזמין</p>
     </div>
     <div class="warehouse-grid">
-      <div class="warehouse-card main" onclick="openWarehouse('main')">
+      <div class="warehouse-card main" data-wh="main">
         <div class="wh-icon">📦</div>
-        <div class="wh-title">מחסן ראשי</div>
+        <div class="wh-title">מחסן דת</div>
         <div class="wh-sub">הזמנת ציוד דת</div>
-        <div class="wh-arrow">›</div>
       </div>
-      <div class="warehouse-card zuk" onclick="openWarehouse('zuk')">
+      <div class="warehouse-card zuk" data-wh="zuk">
         <div class="wh-icon">🪖</div>
         <div class="wh-title">ציוד זו"ק</div>
         <div class="wh-sub">מחסן זוק</div>
-        <div class="wh-arrow">›</div>
       </div>
     </div>
   </div>
 
-  <!-- SUCCESS -->
-  <div class="success-screen" id="successScreen">
-    <div class="success-icon main" id="successIcon">✓</div>
-    <h2>ההזמנה נשלחה!</h2>
-    <p>תודה, ההזמנה שלך התקבלה בהצלחה.<br>נחזור אליך בהקדם.</p>
-    <button class="new-order-btn" onclick="resetAll()">הזמנה חדשה</button>
-  </div>
-
-  <!-- MAIN FORM -->
-  <div class="form-screen" id="mainForm">
+  <!-- ══ ORDER FORM ══ -->
+  <div class="screen" id="orderScreen">
     <div class="customer-card">
       <h2>פרטי הזמנה</h2>
-      <div class="input-group">
-        <input type="text" id="mainName" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *" required>
-        <input type="text" id="mainPhone" placeholder="מס' טלפון *" required>
+      <div id="customerKnown" style="display:none">
+        <div class="customer-line" id="customerLine"></div>
+      </div>
+      <div id="customerFields" style="display:none">
+        <input type="text" class="field" id="ordInitials" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *">
+        <input type="tel" class="field" id="ordPhone" placeholder="מס' טלפון *" inputmode="tel">
       </div>
     </div>
-    <div class="loading" id="mainLoading">
-      <div class="spinner"></div>
-      <div>טוען מוצרים...</div>
-    </div>
-    <div id="mainProductsSection" style="display:none">
-      <div class="section-title">בחר מוצרים</div>
+
+    <div class="loading" id="prodLoading"><div class="spinner"></div><div>טוען מוצרים...</div></div>
+
+    <div id="prodSection" style="display:none">
+      <div class="section-title" id="prodSectionTitle">בחר מוצרים</div>
       <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="mainSearch" placeholder="חיפוש מוצר..." oninput="renderProducts('main')">
+        <span>🔍</span>
+        <input type="text" id="prodSearch" placeholder="חיפוש מוצר...">
       </div>
-      <div class="categories" id="mainCategories"></div>
-      <div class="products-list" id="mainProductsList"></div>
-    </div>
-    <div id="mainError" style="display:none; text-align:center; padding:30px; color:#991b1b;">
-      שגיאה בטעינת המוצרים. אנא רענן את הדף.
+      <div class="categories" id="prodCategories"></div>
+      <div class="products-list" id="prodList"></div>
     </div>
   </div>
 
-  <!-- ZUK FORM -->
-  <div class="form-screen zuk-mode" id="zukForm">
-    <div class="customer-card">
-      <h2>פרטי הזמנה — ציוד זו"ק</h2>
-      <div class="input-group">
-        <input type="text" id="zukName" placeholder="שם בראשי תיבות (לדוגמא ד.כ) *" required>
-        <input type="text" id="zukPhone" placeholder="מס' טלפון *" required>
-      </div>
-    </div>
-    <div class="loading" id="zukLoading">
-      <div class="spinner"></div>
-      <div>טוען מוצרים...</div>
-    </div>
-    <div id="zukProductsSection" style="display:none">
-      <div class="section-title">בחר ציוד</div>
-      <div class="search-bar">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="zukSearch" placeholder="חיפוש ציוד..." oninput="renderProducts('zuk')">
-      </div>
-      <div class="categories" id="zukCategories"></div>
-      <div class="products-list" id="zukProductsList"></div>
-    </div>
-    <div id="zukError" style="display:none; text-align:center; padding:30px; color:#991b1b;">
-      שגיאה בטעינת הפריטים. אנא רענן את הדף.
+  <!-- ══ SUCCESS ══ -->
+  <div class="screen" id="successScreen">
+    <div class="success-inner">
+      <div class="success-icon">✓</div>
+      <h2>ההזמנה נשלחה!</h2>
+      <p id="successText">תודה, ההזמנה שלך התקבלה בהצלחה.<br>נעדכן אותך כשתהיה מוכנה לאיסוף.</p>
+      <button class="new-order-btn" id="newOrderBtn">הזמנה חדשה</button>
     </div>
   </div>
 
-  <!-- ADMIN DASHBOARD -->
-  <div class="admin-screen" id="adminScreen">
+  <!-- ══ MY ORDERS ══ -->
+  <div class="screen" id="myOrdersScreen">
+    <div class="admin-toolbar">
+      <h3>ההזמנות שלי</h3>
+      <button class="icon-btn" id="refreshMyOrders">↻ רענן</button>
+    </div>
+    <div id="myOrdersList"></div>
+  </div>
+
+  <!-- ══ ADMIN ══ -->
+  <div class="screen" id="adminScreen">
     <div class="admin-tabs">
-      <button class="admin-tab active" data-pane="orders" onclick="setAdminTab('orders')">הזמנות</button>
-      <button class="admin-tab" data-pane="inventory" onclick="setAdminTab('inventory')">מלאי</button>
-      <button class="admin-tab" data-pane="users" onclick="setAdminTab('users')">משתמשים</button>
+      <button class="admin-tab active" data-pane="orders">הזמנות</button>
+      <button class="admin-tab" data-pane="archive">ארכיון</button>
+      <button class="admin-tab" data-pane="inventory">מלאי</button>
+      <button class="admin-tab" data-pane="users">משתמשים</button>
     </div>
 
     <div class="admin-pane active" id="ordersPane">
       <div class="admin-toolbar">
-        <h3>הזמנות</h3>
-        <button class="icon-btn" style="background:var(--primary)" onclick="loadOrders()">↻ רענן</button>
+        <h3>הזמנות ממתינות</h3>
+        <button class="icon-btn" id="refreshOrders">↻ רענן</button>
       </div>
-      <div id="ordersLoading" class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>
       <div id="ordersList"></div>
+    </div>
+
+    <div class="admin-pane" id="archivePane">
+      <div class="admin-toolbar">
+        <h3>ארכיון הזמנות</h3>
+        <button class="icon-btn" id="refreshArchive">↻ רענן</button>
+      </div>
+      <div id="archiveList"></div>
     </div>
 
     <div class="admin-pane" id="inventoryPane">
       <div class="admin-toolbar">
         <h3>מלאי</h3>
         <div class="toolbar-btns">
-          <button class="icon-btn" style="background:var(--success)" onclick="toggleReceivePanel()">➕ קליטת סחורה</button>
-          <button class="icon-btn" id="editInvBtn" style="background:var(--accent2)" onclick="toggleInvEdit()">✎ עריכת מלאי</button>
-          <button class="icon-btn" style="background:var(--primary)" onclick="loadInventory()">↻</button>
+          <button class="icon-btn" style="background:var(--success)" id="receiveToggle">➕ קליטת סחורה</button>
+          <button class="icon-btn" style="background:var(--accent2)" id="editInvBtn">✎ עריכה</button>
+          <button class="icon-btn" style="background:#1d7a4c" id="exportBtn">⬇ אקסל</button>
+          <button class="icon-btn" id="refreshInv">↻</button>
         </div>
       </div>
 
       <div class="receive-panel" id="receivePanel" style="display:none">
         <div class="section-title">קליטת סחורה</div>
         <div class="rc-grid">
-          <select id="rcWarehouse" class="rc-input">
+          <select id="rcWarehouse" class="field">
             <option value="main">מחסן דת</option>
             <option value="zuk">ציוד זו"ק</option>
           </select>
-          <input type="text" id="rcName" class="rc-input" placeholder="שם המוצר">
-          <input type="number" id="rcQty" class="rc-input" placeholder="כמות" min="1" value="1">
-          <input type="text" id="rcCategory" class="rc-input" placeholder="קטגוריה (לא חובה)">
+          <input type="text" id="rcName" class="field" placeholder="שם המוצר">
+          <input type="number" id="rcQty" class="field" placeholder="כמות" min="1" value="1">
+          <input type="text" id="rcCategory" class="field" placeholder="קטגוריה (לא חובה)">
         </div>
         <label class="rc-check"><input type="checkbox" id="rcExposed" checked> חשוף להזמנות (יופיע ללקוחות)</label>
-        <button class="btn-block solid" onclick="submitReceive()">קלוט סחורה</button>
-        <div class="rc-hint">אם השם תואם למוצר קיים — הכמות תתווסף למלאי הקיים.<br>אחרת ייווצר מוצר חדש.</div>
+        <button class="btn-block solid" id="rcSubmit">קלוט סחורה</button>
+        <div class="rc-hint">אם השם תואם למוצר קיים — הכמות תתווסף.<br>אחרת ייווצר מוצר חדש.</div>
       </div>
 
       <div id="inventoryList"></div>
@@ -1142,1054 +211,57 @@
     <div class="admin-pane" id="usersPane">
       <div class="admin-toolbar">
         <h3>משתמשים והרשאות</h3>
-        <button class="icon-btn" style="background:var(--primary)" onclick="loadUsers()">↻ רענן</button>
+        <button class="icon-btn" id="refreshUsers">↻ רענן</button>
       </div>
       <div id="usersList"></div>
     </div>
   </div>
 
-  <!-- MY ORDERS (personal area) -->
-  <div class="myorders-screen" id="myOrdersScreen">
-    <div class="admin-toolbar">
-      <h3>ההזמנות שלי</h3>
-      <button class="icon-btn" style="background:var(--primary)" onclick="loadMyOrders()">↻ רענן</button>
-    </div>
-    <div id="myOrdersLoading" class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>
-    <div id="myOrdersList"></div>
-  </div>
-
 </div>
 
-<!-- CART DRAWER -->
-<div class="cart-overlay" id="cartOverlay" onclick="handleOverlayClick(event)">
+<!-- ══ CART ══ -->
+<div class="cart-overlay" id="cartOverlay">
   <div class="cart-drawer">
     <div class="cart-handle"></div>
     <div class="cart-header">
       <h2>סל הזמנה</h2>
-      <button class="close-btn" onclick="closeCart()">✕</button>
+      <button class="close-btn" id="cartCloseBtn">✕</button>
     </div>
     <div id="cartItems"></div>
-    <div id="cartError" class="error-msg"></div>
-    <button class="submit-btn" id="submitBtn" onclick="submitOrder()">שלח הזמנה</button>
+    <div class="form-error" id="cartError"></div>
+    <button class="submit-btn" id="submitBtn">שלח הזמנה</button>
   </div>
 </div>
 
-<!-- SUPPLIER CERTIFICATE CONFIRM -->
-<div class="confirm-overlay" id="supplierConfirm" onclick="handleSupplierOverlayClick(event)">
+<!-- ══ SUPPLIER CERTIFICATE ══ -->
+<div class="confirm-overlay" id="certModal">
   <div class="confirm-box">
     <div class="confirm-icon">📋</div>
     <p class="confirm-text">לכל משיכת ציוד יש להציג תעודת ספק</p>
     <p class="confirm-strong">ללא תעודת ספק הציוד לא ימסר!</p>
+
+    <div class="cert-choice">
+      <div class="cert-drop" id="certDrop">
+        <div class="cert-drop-icon">📎</div>
+        <div class="cert-drop-label" id="certDropLabel">העלה תעודת ספק</div>
+        <div class="cert-drop-hint" id="certDropHint">קובץ PDF · עד 10MB</div>
+      </div>
+      <input type="file" id="certFile" accept="application/pdf,.pdf" style="display:none">
+    </div>
+
+    <div class="form-error" id="certError"></div>
+
     <div class="confirm-actions">
-      <button class="confirm-yes" onclick="confirmSupplierAndSend()">יש לי תעודת ספק</button>
-      <button class="confirm-cancel" onclick="closeSupplierConfirm()">ביטול</button>
+      <button class="confirm-yes" id="certSendWithFile" disabled>שלח הזמנה עם התעודה</button>
+      <button class="confirm-alt" id="certSendLater">אגיש תעודת ספק באיסוף</button>
+      <button class="confirm-cancel" id="certCancel">ביטול</button>
     </div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-
-<script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyDZ61pmbqVAgC3lUkdreQB3otRlBwYy1NdB4UWZ4uglpx1a1evVLlrt6xR9kSNoc6l/exec';
-  const ZUK_SHEET  = 'מחסן זוק';
-
-  // ── CONFIG ───────────────────────────────────
-  // מזהה ה-OAuth Client של Google (Web application). חייב להיות זהה לזה שבקובץ Apps Script.
-  // ריק => התחברות Google מושבתת ומופעל מצב בדיקה מקומי.
-  const GOOGLE_CLIENT_ID = '690622925527-3q0k73ioffnodq11meu6d4tvbb4aooug.apps.googleusercontent.com';
-  const ADMIN_EMAIL = 'rabanoot98@gmail.com';
-
-  // מצב בדיקה מקומי: כשמריצים מ-localhost או שאין CLIENT_ID — עובדים מול נתונים מדומים.
-  const IS_LOCAL = ['localhost', '127.0.0.1', ''].indexOf(location.hostname) > -1;
-  const USE_MOCK = IS_LOCAL || !GOOGLE_CLIENT_ID;
-
-  let auth = { email: null, name: null, role: 'guest', token: null, loggedIn: false };
-
-  let state = {
-    mode: null,
-    products: { main: [], zuk: [] },
-    loaded:   { main: false, zuk: false },
-    cart:      { main: {}, zuk: {} },
-    categories: { main: [], zuk: [] },
-    activeCategory: { main: 'הכל', zuk: 'הכל' },
-    submitting: false // דגל חסימת שליחה כפולה
-  };
-
-  // ── NAVIGATION ──────────────────────────────
-
-  function goHome() {
-    state.mode = null;
-    document.getElementById('homeScreen').classList.remove('hide');
-    document.getElementById('mainForm').classList.remove('active');
-    document.getElementById('zukForm').classList.remove('active');
-    document.getElementById('adminScreen').classList.remove('active');
-    document.getElementById('myOrdersScreen').classList.remove('active');
-    document.getElementById('successScreen').classList.remove('show');
-    document.getElementById('backBtn').classList.remove('visible');
-    document.getElementById('headerTitle').textContent = 'מערכת הזמנות';
-    document.getElementById('mainHeader').classList.remove('zuk-mode');
-    document.getElementById('cartBadge').style.display = 'none';
-  }
-
-  function openWarehouse(mode) {
-    state.mode = mode;
-    document.getElementById('homeScreen').classList.add('hide');
-    document.getElementById('backBtn').classList.add('visible');
-
-    if (mode === 'main') {
-      document.getElementById('mainForm').classList.add('active');
-      document.getElementById('zukForm').classList.remove('active');
-      document.getElementById('headerTitle').textContent = 'מחסן ראשי';
-      document.getElementById('mainHeader').classList.remove('zuk-mode');
-    } else {
-      document.getElementById('zukForm').classList.add('active');
-      document.getElementById('mainForm').classList.remove('active');
-      document.getElementById('headerTitle').textContent = 'ציוד זו"ק';
-      document.getElementById('mainHeader').classList.add('zuk-mode');
-    }
-
-    updateCartBadge();
-    if (!state.loaded[mode]) loadProducts(mode);
-  }
-
-  function resetAll() {
-    state.cart = { main: {}, zuk: {} };
-    state.mode = null;
-    state.submitting = false;
-    
-    // החזרת השדות למצב פעיל
-    document.getElementById('mainName').disabled = false;
-    document.getElementById('mainPhone').disabled = false;
-    document.getElementById('zukName').disabled = false;
-    document.getElementById('zukPhone').disabled = false;
-
-    document.getElementById('successScreen').classList.remove('show');
-    document.getElementById('mainForm').classList.remove('hide', 'active');
-    document.getElementById('zukForm').classList.remove('hide', 'active');
-    document.getElementById('homeScreen').classList.remove('hide');
-    document.getElementById('backBtn').classList.remove('visible');
-    document.getElementById('headerTitle').textContent = 'מערכת הזמנות';
-    document.getElementById('mainHeader').classList.remove('zuk-mode');
-    document.getElementById('mainName').value = '';
-    document.getElementById('mainPhone').value = '';
-    document.getElementById('zukName').value = '';
-    document.getElementById('zukPhone').value = '';
-    
-    updateCartBadge();
-  }
-
-  // ── DATA ─────────────────────────────────────
-
-  async function loadProducts(mode) {
-    const loadingId = mode === 'main' ? 'mainLoading' : 'zukLoading';
-    const sectionId = mode === 'main' ? 'mainProductsSection' : 'zukProductsSection';
-    const errorId   = mode === 'main' ? 'mainError' : 'zukError';
-
-    try {
-      const params = mode === 'main' ? {} : { sheet: ZUK_SHEET };
-      const data = await api('getProducts', params);
-      state.products[mode] = data;
-      state.categories[mode] = ['הכל', ...new Set(data.map(p => p.category).filter(Boolean))];
-      state.loaded[mode] = true;
-      renderCategories(mode);
-      renderProducts(mode);
-      document.getElementById(loadingId).style.display = 'none';
-      document.getElementById(sectionId).style.display = 'block';
-    } catch (e) {
-      document.getElementById(loadingId).style.display = 'none';
-      document.getElementById(errorId).style.display   = 'block';
-    }
-  }
-
-  // ── RENDER ───────────────────────────────────
-
-  function renderCategories(mode) {
-    const bar = document.getElementById(mode === 'main' ? 'mainCategories' : 'zukCategories');
-    bar.innerHTML = state.categories[mode].map(cat => `
-      <button class="cat-btn ${cat === state.activeCategory[mode] ? 'active' : ''}"
-        onclick="setCategory('${mode}','${esc(cat)}')">
-        ${htmlEsc(cat)}
-      </button>
-    `).join('');
-  }
-
-  function setCategory(mode, cat) {
-    state.activeCategory[mode] = cat;
-    renderCategories(mode);
-    renderProducts(mode);
-  }
-
-  function renderProducts(mode) {
-    const searchId = mode === 'main' ? 'mainSearch' : 'zukSearch';
-    const listId   = mode === 'main' ? 'mainProductsList' : 'zukProductsList';
-    const search   = document.getElementById(searchId).value.trim().toLowerCase();
-
-    const filtered = state.products[mode].filter(p => {
-      const matchCat    = state.activeCategory[mode] === 'הכל' || p.category === state.activeCategory[mode];
-      const matchSearch = !search || p.name.toLowerCase().includes(search);
-      return matchCat && matchSearch;
-    });
-
-    const list = document.getElementById(listId);
-    if (filtered.length === 0) {
-      list.innerHTML = '<div class="empty-state">לא נמצאו פריטים</div>';
-      return;
-    }
-
-    list.innerHTML = filtered.map(p => {
-      const inCart = state.cart[mode][p.name];
-      const qty    = inCart ? inCart.qty : 0;
-      const isMax  = qty >= p.stock;
-      const isIn   = qty > 0;
-      return `
-        <div class="product-card ${isIn ? 'in-cart' : ''}" data-name="${htmlEsc(p.name)}">
-          <div>
-            <div class="product-name">${htmlEsc(p.name)}</div>
-            ${p.category ? `<div class="product-cat">${htmlEsc(p.category)}</div>` : ''}
-          </div>
-          <div class="qty-control">
-            <button class="qty-btn minus" onclick="changeQtyCard(this,'${mode}',-1,${p.stock})" ${qty === 0 ? 'disabled' : ''}>−</button>
-            <input type="number" class="qty-display" value="${qty}" min="0" max="${p.stock}"
-              onchange="setQtyCard(this,'${mode}',${p.stock})"
-              onclick="this.select()">
-            <button class="qty-btn plus" onclick="changeQtyCard(this,'${mode}',1,${p.stock})" ${isMax ? 'disabled' : ''}>+</button>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function toText(value) {
-    return value == null ? '' : String(value);
-  }
-
-  function esc(value) {
-    return toText(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  }
-
-  function htmlEsc(value) {
-    return toText(value)
-      .replace(/&/g, '&amp;')
-      .replace(/"/g, '&quot;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
-  function changeQtyCard(btn, mode, delta, maxQty) {
-    const name = btn.closest('.product-card').dataset.name;
-    changeQty(mode, name, delta, maxQty);
-  }
-  function setQtyCard(input, mode, maxQty) {
-    const name = input.closest('.product-card').dataset.name;
-    setQty(mode, name, input.value, maxQty);
-  }
-  function cartChangeQtyItem(btn, delta) {
-    const name = btn.closest('.cart-item').dataset.name;
-    cartChangeQty(name, delta);
-  }
-  function removeFromCartItem(btn) {
-    const name = btn.closest('.cart-item').dataset.name;
-    removeFromCart(name);
-  }
-
-  // ── CART LOGIC ───────────────────────────────
-
-  function setQty(mode, name, value, maxQty) {
-    if (state.submitting) return; // מניעת שינוי בזמן שליחה
-    let qty = parseInt(value, 10);
-    if (isNaN(qty) || qty < 0) qty = 0;
-    if (qty > maxQty) qty = maxQty;
-    if (qty === 0) delete state.cart[mode][name];
-    else state.cart[mode][name] = { qty, maxQty };
-    updateCartBadge();
-    renderProducts(mode);
-  }
-
-  function changeQty(mode, name, delta, maxQty) {
-    if (state.submitting) return; // מניעת שינוי בזמן שליחה
-    if (!state.cart[mode][name]) state.cart[mode][name] = { qty: 0, maxQty };
-    const newQty = Math.max(0, Math.min(maxQty, state.cart[mode][name].qty + delta));
-    state.cart[mode][name].qty = newQty;
-    if (newQty === 0) delete state.cart[mode][name];
-    updateCartBadge();
-    renderProducts(mode);
-  }
-
-  // שינוי כמות מתוך הסל
-  function cartChangeQty(name, delta) {
-    if (state.submitting) return; // מניעת שינוי בזמן שליחה
-    const m = state.mode;
-    const item = state.cart[m][name];
-    if (!item) return;
-    const newQty = Math.max(0, Math.min(item.maxQty, item.qty + delta));
-    if (newQty === 0) {
-      delete state.cart[m][name];
-    } else {
-      state.cart[m][name].qty = newQty;
-    }
-    updateCartBadge();
-    renderProducts(m);
-    renderCartItems(); // רענן את הסל
-  }
-
-  // הסרת פריט מהסל
-  function removeFromCart(name) {
-    if (state.submitting) return; // מניעת שינוי בזמן שליחה
-    const m = state.mode;
-    delete state.cart[m][name];
-    updateCartBadge();
-    renderProducts(m);
-    renderCartItems();
-  }
-
-  function updateCartBadge() {
-    const m = state.mode;
-    if (!m) { document.getElementById('cartBadge').style.display = 'none'; return; }
-    const total = Object.values(state.cart[m]).reduce((s, v) => s + v.qty, 0);
-    const count = Object.keys(state.cart[m]).length;
-    const badge = document.getElementById('cartBadge');
-    document.getElementById('cartCount').textContent = count;
-    badge.style.display = total > 0 ? 'block' : 'none';
-    badge.className     = 'cart-badge' + (m === 'zuk' ? ' zuk' : '');
-  }
-
-  // ── CART DRAWER ──
-
-  function openCart() {
-    renderCartItems();
-    document.getElementById('cartOverlay').classList.add('open');
-    const btn = document.getElementById('submitBtn');
-    btn.className = 'submit-btn' + (state.mode === 'zuk' ? ' zuk' : '');
-    
-    // אם המערכת כרגע שולחת, נשבית את כפתור השליחה
-    btn.disabled = state.submitting;
-  }
-
-  function closeCart() {
-    document.getElementById('cartOverlay').classList.remove('open');
-  }
-
-  function handleOverlayClick(e) {
-    if (e.target === document.getElementById('cartOverlay')) closeCart();
-  }
-
-  function renderCartItems() {
-    const m         = state.mode;
-    const container = document.getElementById('cartItems');
-    const items     = Object.entries(state.cart[m]);
-    const isZuk     = m === 'zuk';
-
-    if (items.length === 0) {
-      container.innerHTML = '<div class="cart-empty">הסל ריק</div>';
-      return;
-    }
-
-    container.innerHTML = items.map(([name, v]) => `
-      <div class="cart-item" data-name="${htmlEsc(name)}">
-        <div class="cart-item-info">
-          <div class="cart-item-name">${htmlEsc(name)}</div>
-        </div>
-        <div class="cart-item-controls">
-          <button class="cart-qty-btn minus" onclick="cartChangeQtyItem(this,-1)" ${v.qty <= 1 || state.submitting ? 'disabled' : ''}>−</button>
-          <span class="cart-qty-num">${v.qty}</span>
-          <button class="cart-qty-btn plus ${isZuk ? 'zuk-btn' : ''}" onclick="cartChangeQtyItem(this,1)" ${v.qty >= v.maxQty || state.submitting ? 'disabled' : ''}>+</button>
-          <button class="cart-trash-btn" onclick="removeFromCartItem(this)" title="הסר מהסל" ${state.submitting ? 'disabled' : ''}>🗑️</button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  // ── SUBMIT ───────────────────────────────────
-
-  async function submitOrder() {
-    const m        = state.mode;
-    const nameId   = m === 'main' ? 'mainName'     : 'zukName';
-    const divId    = m === 'main' ? 'mainPhone' : 'zukPhone';
-    const nameInput = document.getElementById(nameId);
-    const divInput  = document.getElementById(divId);
-    const name      = nameInput.value.trim();
-    const division  = divInput.value.trim();
-    const errorEl   = document.getElementById('cartError');
-
-    // הגנה מפני קריאות מקבילות או לחיצות חוזרות
-    if (state.submitting) return;
-
-    if (!name || !division) {
-      errorEl.textContent = 'אנא מלא שם וטלפון לפני שליחה';
-      errorEl.style.display = 'block';
-      return;
-    }
-
-    if (Object.keys(state.cart[m]).length === 0) {
-      errorEl.textContent = 'אנא בחר לפחות פריט אחד';
-      errorEl.style.display = 'block';
-      return;
-    }
-
-    errorEl.style.display = 'none';
-
-    // דרישת תעודת ספק: מציגים אישור לפני השליחה בפועל
-    openSupplierConfirm();
-  }
-
-  // ── SUPPLIER CERTIFICATE CONFIRM ─────────────
-  function openSupplierConfirm() {
-    document.getElementById('supplierConfirm').classList.add('open');
-  }
-  function closeSupplierConfirm() {
-    document.getElementById('supplierConfirm').classList.remove('open');
-  }
-  function handleSupplierOverlayClick(e) {
-    if (e.target === document.getElementById('supplierConfirm')) closeSupplierConfirm();
-  }
-
-  // שליחת ההזמנה בפועל — לאחר אישור "יש לי תעודת ספק"
-  async function confirmSupplierAndSend() {
-    closeSupplierConfirm();
-    const m         = state.mode;
-    const nameInput = document.getElementById(m === 'main' ? 'mainName' : 'zukName');
-    const divInput  = document.getElementById(m === 'main' ? 'mainPhone' : 'zukPhone');
-    const name      = nameInput.value.trim();
-    const division  = divInput.value.trim();
-    const errorEl   = document.getElementById('cartError');
-    const btn       = document.getElementById('submitBtn');
-
-    if (state.submitting) return;
-
-    // הפעלת מצב שליחה ונעילת אלמנטים
-    state.submitting = true;
-    btn.disabled = true;
-    btn.textContent = 'שולח...';
-    nameInput.disabled = true;
-    divInput.disabled = true;
-
-    const orderItems = Object.entries(state.cart[m]).map(([n, v]) => ({ name: n, qty: v.qty }));
-    const payload    = { name, division, items: orderItems, warehouse: m };
-
-    try {
-      await api('submitOrder', payload);
-
-      // הצלחה! מרוקנים את הסל של המחסן הנוכחי לצמיתות כדי שלא יהיה ניתן לשלוח שוב
-      state.cart[m] = {};
-      updateCartBadge();
-      renderProducts(m);
-
-      closeCart();
-      document.getElementById(m === 'main' ? 'mainForm' : 'zukForm').classList.add('hide');
-      document.getElementById('homeScreen').classList.add('hide');
-      document.getElementById('backBtn').classList.remove('visible');
-
-      document.getElementById('successIcon').className = 'success-icon ' + m;
-      document.getElementById('successScreen').classList.add('show');
-
-    } catch (e) {
-      // במקרה של שגיאה אמיתית ברשת, מאפשרים לנסות שוב ופותחים את הנעילה
-      errorEl.textContent = 'שגיאה בשליחה. אנא וודא חיבור לרשת ונסה שוב.';
-      errorEl.style.display = 'block';
-
-      state.submitting = false;
-      btn.disabled = false;
-      btn.textContent = 'שלח הזמנה';
-      nameInput.disabled = false;
-      divInput.disabled = false;
-    }
-  }
-
-  // ── API LAYER ────────────────────────────────
-  // במצב בדיקה מקומי (localhost / ללא CLIENT_ID) פונה ל-Mock; אחרת ל-Apps Script.
-  async function api(action, params) {
-    if (USE_MOCK) return Mock.handle(action, params || {});
-    const body = Object.assign({ action: action }, params || {});
-    if (auth.token) body.idToken = auth.token;
-    // Content-Type: text/plain כדי להימנע מ-preflight ולאפשר קריאת התשובה (CORS)
-    const res = await fetch(SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json();
-    if (data && data.error) throw new Error(data.error);
-    return data;
-  }
-
-  // ── MOCK BACKEND (בדיקה מקומית) ───────────────
-  const Mock = (function () {
-    let products = {
-      main: [
-        { name: 'סידור', stock: 12, category: 'ספרים', exposed: true },
-        { name: 'טלית', stock: 5, category: 'לבוש', exposed: true },
-        { name: 'תפילין', stock: 3, category: 'תשמישי קדושה', exposed: true },
-        { name: 'נרות שבת', stock: 40, category: 'כללי', exposed: true },
-        { name: 'ספר תהילים', stock: 8, category: 'ספרים', exposed: false },
-      ],
-      zuk: [
-        { name: 'אפוד', stock: 8, category: 'ציוד', exposed: true },
-        { name: 'קסדה', stock: 6, category: 'ציוד', exposed: true },
-        { name: 'פנס טקטי', stock: 15, category: 'ציוד', exposed: true },
-      ],
-    };
-    let rowSeq = 100;
-    let orders = [
-      { startRow: 2, date: '26.7.2026, 10:05', name: 'ד.כ', division: '050-1234567', warehouse: 'main', orderId: 'MOCK-1', email: 'user@example.com',
-        items: [ { row: 2, name: 'סידור', qty: 2, status: 'ממתין לאישור' }, { row: 3, name: 'טלית', qty: 1, status: 'ממתין לאישור' } ] },
-      { startRow: 5, date: '26.7.2026, 09:30', name: 'א.ב', division: '052-7654321', warehouse: 'zuk', orderId: 'MOCK-2', email: '',
-        items: [ { row: 5, name: 'קסדה', qty: 1, status: 'ממתין לאישור' } ] },
-      { startRow: 7, date: '25.7.2026, 14:00', name: 'מ.ג', division: '054-1112223', warehouse: 'main', orderId: 'MOCK-3', email: 'user@example.com',
-        items: [ { row: 7, name: 'נרות שבת', qty: 5, status: 'עודכן במלאי' } ] },
-    ];
-    let users = [
-      { email: ADMIN_EMAIL, name: 'מנהל', role: 'admin', lastSeen: '', registered: '26.7.2026' },
-      { email: 'user@example.com', name: 'משתמש בדיקה', role: 'user', lastSeen: '26.7.2026', registered: '25.7.2026' },
-    ];
-    function orderStatus(o) {
-      const st = o.items.map(function (i) { return i.status; });
-      if (st.every(function (s) { return s === 'מאושר' || s === 'עודכן במלאי'; })) return 'מאושר';
-      if (st.indexOf('חסר') > -1) return 'חסר';
-      return 'ממתין לאישור';
-    }
-    function delay(v) { return new Promise(function (r) { setTimeout(function () { r(v); }, 150); }); }
-    function findByRow(row) {
-      for (var i = 0; i < orders.length; i++) {
-        var it = orders[i].items.find(function (x) { return x.row === Number(row); });
-        if (it) return { order: orders[i], item: it };
-      }
-      return null;
-    }
-    return {
-      handle: function (action, p) {
-        switch (action) {
-          case 'getProducts': {
-            const list = p.sheet ? products.zuk : products.main;
-            return delay(list.filter(function (x) { return x.stock > 0 && x.exposed !== false; })
-              .map(function (x) { return { name: x.name, stock: x.stock, category: x.category }; }));
-          }
-          case 'submitOrder': {
-            const start = ++rowSeq;
-            const o = { startRow: start, date: new Date().toLocaleString('he-IL'), name: p.name, division: p.division,
-              warehouse: p.warehouse || 'main', orderId: 'MOCK-' + start,
-              email: (auth.role === 'guest' ? '' : (auth.email || '')),
-              items: p.items.map(function (it, idx) { return { row: start + idx, name: it.name, qty: it.qty, status: 'ממתין לאישור' }; }) };
-            orders.unshift(o);
-            return delay({ success: true });
-          }
-          case 'getMyOrders': {
-            const email = (auth.email || '').toLowerCase();
-            if (!email) return delay({ ok: false, error: 'עליך להתחבר כדי לראות את ההזמנות שלך' });
-            const mine = orders.filter(function (o) { return String(o.email || '').toLowerCase() === email; })
-              .map(function (o) {
-                return { date: o.date, warehouse: o.warehouse,
-                  items: o.items.map(function (it) { return { name: it.name, qty: it.qty }; }),
-                  status: orderStatus(o) === 'מאושר' ? 'מוכנה לאיסוף' : 'ממתינה' };
-              });
-            return delay({ ok: true, orders: mine });
-          }
-          case 'login':
-            return delay({ ok: true, email: auth.email, name: auth.name, role: auth.role });
-          case 'getOrders':
-            return delay({ ok: true, orders: orders.map(function (o) { return Object.assign({ status: orderStatus(o) }, JSON.parse(JSON.stringify(o))); }) });
-          case 'updateOrderItem': {
-            const f = findByRow(p.row);
-            if (f) { if (p.qty != null) f.item.qty = Math.max(0, parseInt(p.qty, 10) || 0); if (p.status) f.item.status = p.status; }
-            return delay({ ok: true });
-          }
-          case 'updateOrderMeta': {
-            const o = orders.find(function (x) { return x.startRow === Number(p.startRow); });
-            if (o) { if (p.name != null) o.name = p.name; if (p.division != null) o.division = p.division; }
-            return delay({ ok: true });
-          }
-          case 'approveOrder': {
-            const o = orders.find(function (x) { return x.startRow === Number(p.startRow); });
-            if (!o) return delay({ ok: false, error: 'ההזמנה לא נמצאה' });
-            const results = [];
-            o.items.forEach(function (it) {
-              if (it.status === 'עודכן במלאי') { results.push({ name: it.name, skipped: true }); return; }
-              const inv = products[o.warehouse] || products.main;
-              const prod = inv.find(function (x) { return x.name === it.name; });
-              if (prod) { prod.stock = Math.max(0, prod.stock - it.qty); results.push({ name: it.name, newStock: prod.stock }); }
-              else results.push({ name: it.name, notFound: true });
-              it.status = 'עודכן במלאי';
-            });
-            return delay({ ok: true, results: results });
-          }
-          case 'deleteOrder': {
-            orders = orders.filter(function (x) { return x.startRow !== Number(p.startRow); });
-            return delay({ ok: true });
-          }
-          case 'getInventory':
-            return delay({ ok: true, inventory: {
-              main: products.main.map(function (x) { return Object.assign({ exposed: x.exposed !== false }, x); }),
-              zuk: products.zuk.map(function (x) { return Object.assign({ exposed: x.exposed !== false }, x); }) } });
-          case 'updateInventoryItem': {
-            const arr = products[p.warehouse] || products.main;
-            const prod = arr.find(function (x) { return x.name === p.name; });
-            if (!prod) return delay({ ok: false, error: 'מוצר לא נמצא' });
-            if (p.qty != null) prod.stock = Math.max(0, parseInt(p.qty, 10) || 0);
-            if (p.category != null) prod.category = p.category;
-            if (p.exposed != null) prod.exposed = !!p.exposed;
-            return delay({ ok: true });
-          }
-          case 'receiveGoods': {
-            const arr = products[p.warehouse] || products.main;
-            const name = String(p.name || '').trim();
-            if (!name) return delay({ ok: false, error: 'חסר שם מוצר' });
-            const addQty = Math.max(0, parseInt(p.qty, 10) || 0);
-            const prod = arr.find(function (x) { return x.name === name; });
-            if (prod) {
-              prod.stock += addQty;
-              if (p.category) prod.category = p.category;
-              if (p.exposed != null) prod.exposed = !!p.exposed;
-              return delay({ ok: true, created: false, newStock: prod.stock, name: name });
-            }
-            arr.push({ name: name, stock: addQty, category: p.category || 'כללי', exposed: p.exposed !== false });
-            return delay({ ok: true, created: true, newStock: addQty, name: name });
-          }
-          case 'listUsers':
-            return delay({ ok: true, users: users.map(function (x) { return Object.assign({}, x); }) });
-          case 'setUserRole': {
-            const u = users.find(function (x) { return x.email.toLowerCase() === String(p.email).toLowerCase(); });
-            if (u && u.email !== ADMIN_EMAIL) u.role = p.role;
-            return delay({ ok: true });
-          }
-          default:
-            return delay({ error: 'פעולה לא מוכרת: ' + action });
-        }
-      }
-    };
-  })();
-
-  // ── AUTH ─────────────────────────────────────
-  function initAuthUI() {
-    if (USE_MOCK) {
-      document.getElementById('mockBanner').style.display = 'block';
-      document.getElementById('mockLoginButtons').style.display = 'block';
-      document.getElementById('gsiButton').style.display = 'none';
-      return;
-    }
-    const tryInit = function () {
-      if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleCredentialResponse });
-        google.accounts.id.renderButton(document.getElementById('gsiButton'),
-          { theme: 'outline', size: 'large', text: 'signin_with', locale: 'he', width: 300 });
-        return true;
-      }
-      return false;
-    };
-    if (!tryInit()) {
-      let n = 0;
-      const iv = setInterval(function () { if (tryInit() || ++n > 60) clearInterval(iv); }, 100);
-    }
-  }
-
-  async function handleCredentialResponse(response) {
-    auth.token = response.credential;
-    try {
-      const data = await api('login', {});
-      if (!data || !data.ok) { showToast('אימות נכשל', true); auth.token = null; return; }
-      auth.email = data.email; auth.name = data.name; auth.role = data.role;
-      afterLogin();
-    } catch (e) {
-      auth.token = null;
-      showToast('שגיאת התחברות: ' + e.message, true);
-    }
-  }
-
-  function mockLogin(role) {
-    auth.token = 'mock-token';
-    if (role === 'admin') { auth.email = ADMIN_EMAIL; auth.name = 'מנהל'; auth.role = 'admin'; }
-    else { auth.email = 'user@example.com'; auth.name = 'משתמש בדיקה'; auth.role = 'user'; }
-    afterLogin();
-  }
-
-  // כניסת מנהל מהכפתור הקטן בפינה.
-  // מקומית (בדיקה) — מתחבר ישירות כמנהל. באוויר — פותח התחברות Google;
-  // מי שמתחבר עם חשבון המנהל (rabanoot98@gmail.com) יזוהה אוטומטית כמנהל.
-  function adminEntry() {
-    if (USE_MOCK) { mockLogin('admin'); return; }
-    if (window.google && google.accounts && google.accounts.id) {
-      google.accounts.id.prompt();
-    } else {
-      showToast('טוען התחברות Google, נסה שוב עוד רגע…', true);
-    }
-  }
-
-  function enterAsGuest() {
-    auth = { email: null, name: 'אורח', role: 'guest', token: null, loggedIn: true };
-    afterLogin();
-  }
-
-  function afterLogin() {
-    auth.loggedIn = true;
-    document.getElementById('loginScreen').classList.remove('active');
-    document.getElementById('accountBadge').style.display = 'flex';
-    document.getElementById('accountName').textContent = auth.role === 'guest' ? 'אורח' : (auth.name || auth.email || '');
-    document.getElementById('adminBtn').style.display = auth.role === 'admin' ? 'block' : 'none';
-    // אזור אישי — לכל משתמש מחובר (לא אורח)
-    document.getElementById('myOrdersBtn').style.display = (auth.role !== 'guest' && auth.email) ? 'block' : 'none';
-    document.getElementById('homeScreen').classList.remove('hide');
-    showToast(auth.role === 'admin' ? 'שלום מנהל 👋' : (auth.role === 'guest' ? 'ברוך הבא, אורח' : 'התחברת בהצלחה'));
-  }
-
-  // ── ACCOUNT MENU (dropdown) ──────────────────
-  function toggleAccountMenu(e) {
-    if (e) e.stopPropagation();
-    document.getElementById('accountMenu').classList.toggle('open');
-  }
-  function closeAccountMenu() {
-    const m = document.getElementById('accountMenu');
-    if (m) m.classList.remove('open');
-  }
-  document.addEventListener('click', function (e) {
-    const badge = document.getElementById('accountBadge');
-    if (badge && !badge.contains(e.target)) closeAccountMenu();
-  });
-
-  function logout() {
-    closeAccountMenu();
-    if (!USE_MOCK && window.google && google.accounts && google.accounts.id) {
-      try { google.accounts.id.disableAutoSelect(); } catch (e) {}
-    }
-    auth = { email: null, name: null, role: 'guest', token: null, loggedIn: false };
-    state.cart = { main: {}, zuk: {} };
-    goHome();
-    document.getElementById('accountBadge').style.display = 'none';
-    document.getElementById('adminBtn').style.display = 'none';
-    document.getElementById('myOrdersBtn').style.display = 'none';
-    document.getElementById('homeScreen').classList.add('hide');
-    document.getElementById('loginScreen').classList.add('active');
-    updateCartBadge();
-  }
-
-  // ── ADMIN DASHBOARD ──────────────────────────
-  let adminOrders = [];
-
-  function openAdmin() {
-    closeAccountMenu();
-    goHome();
-    document.getElementById('homeScreen').classList.add('hide');
-    document.getElementById('adminScreen').classList.add('active');
-    document.getElementById('headerTitle').textContent = 'ניהול';
-    document.getElementById('backBtn').classList.add('visible');
-    document.getElementById('cartBadge').style.display = 'none';
-    setAdminTab('orders');
-    loadOrders();
-  }
-
-  function setAdminTab(pane) {
-    document.querySelectorAll('.admin-tab').forEach(function (t) {
-      t.classList.toggle('active', t.dataset.pane === pane);
-    });
-    document.getElementById('ordersPane').classList.toggle('active', pane === 'orders');
-    document.getElementById('inventoryPane').classList.toggle('active', pane === 'inventory');
-    document.getElementById('usersPane').classList.toggle('active', pane === 'users');
-    if (pane === 'inventory') loadInventory();
-    if (pane === 'users') loadUsers();
-  }
-
-  const WH_LABEL = { main: 'מחסן ראשי', zuk: 'ציוד זו"ק' };
-
-  // ── MY ORDERS (אזור אישי) ────────────────────
-  function openMyOrders() {
-    closeAccountMenu();
-    goHome();
-    document.getElementById('homeScreen').classList.add('hide');
-    document.getElementById('myOrdersScreen').classList.add('active');
-    document.getElementById('headerTitle').textContent = 'ההזמנות שלי';
-    document.getElementById('backBtn').classList.add('visible');
-    document.getElementById('cartBadge').style.display = 'none';
-    loadMyOrders();
-  }
-
-  async function loadMyOrders() {
-    const list = document.getElementById('myOrdersList');
-    document.getElementById('myOrdersLoading').style.display = 'block';
-    list.innerHTML = '';
-    try {
-      const data = await api('getMyOrders', {});
-      document.getElementById('myOrdersLoading').style.display = 'none';
-      if (data && data.ok === false) { list.innerHTML = '<div class="admin-empty">' + htmlEsc(data.error || 'שגיאה') + '</div>'; return; }
-      renderMyOrders((data && data.orders) || []);
-    } catch (e) {
-      document.getElementById('myOrdersLoading').style.display = 'none';
-      list.innerHTML = '<div class="admin-empty">שגיאה בטעינת ההזמנות:<br>' + htmlEsc(e.message) + '</div>';
-    }
-  }
-
-  function renderMyOrders(orders) {
-    const list = document.getElementById('myOrdersList');
-    if (!orders.length) {
-      list.innerHTML = '<div class="admin-empty">אין לך הזמנות עדיין 📭</div>';
-      return;
-    }
-    list.innerHTML = orders.map(function (o) {
-      const ready = o.status === 'מוכנה לאיסוף';
-      const cls = ready ? 'approved' : 'pending';
-      const badge = ready ? '✅ מוכנה לאיסוף' : '⏳ ממתינה';
-      const items = o.items.map(function (it) {
-        return '<div class="order-item-row"><span class="order-item-name">' + htmlEsc(it.name) + '</span>' +
-          '<span class="oi-qty">×' + it.qty + '</span></div>';
-      }).join('');
-      return '<div class="order-card ' + (ready ? 'approved' : '') + '">' +
-        '<div class="order-head">' +
-          '<div class="order-meta">' +
-            '<div class="order-customer">📦 ' + (WH_LABEL[o.warehouse] || o.warehouse) + '</div>' +
-            '<div class="order-sub">' + htmlEsc(o.date || '') + '</div>' +
-          '</div>' +
-          '<span class="order-status ' + cls + '">' + badge + '</span>' +
-        '</div>' +
-        '<div class="order-items">' + items + '</div>' +
-      '</div>';
-    }).join('');
-  }
-
-  async function loadOrders() {
-    const list = document.getElementById('ordersList');
-    document.getElementById('ordersLoading').style.display = 'block';
-    list.innerHTML = '';
-    try {
-      const data = await api('getOrders', {});
-      adminOrders = (data && data.orders) || [];
-      document.getElementById('ordersLoading').style.display = 'none';
-      renderOrders();
-    } catch (e) {
-      document.getElementById('ordersLoading').style.display = 'none';
-      list.innerHTML = '<div class="admin-empty">שגיאה בטעינת ההזמנות:<br>' + htmlEsc(e.message) + '</div>';
-    }
-  }
-
-  function renderOrders() {
-    const list = document.getElementById('ordersList');
-    if (!adminOrders.length) {
-      list.innerHTML = '<div class="admin-empty">אין הזמנות כרגע 📭</div>';
-      return;
-    }
-    list.innerHTML = adminOrders.map(function (o) {
-      const approved = o.status === 'מאושר';
-      const statusCls = approved ? 'approved' : (o.status === 'חסר' ? 'missing' : 'pending');
-      const itemsHtml = o.items.map(function (it) {
-        const locked = it.status === 'עודכן במלאי';
-        return '' +
-          '<div class="order-item-row">' +
-            '<span class="order-item-name">' + htmlEsc(it.name) + '</span>' +
-            '<button class="oi-qty-btn" onclick="adminAdjustQty(' + o.startRow + ',' + it.row + ',-1)" ' + (locked ? 'disabled' : '') + '>−</button>' +
-            '<span class="oi-qty">' + it.qty + '</span>' +
-            '<button class="oi-qty-btn" onclick="adminAdjustQty(' + o.startRow + ',' + it.row + ',1)" ' + (locked ? 'disabled' : '') + '>+</button>' +
-          '</div>';
-      }).join('');
-      return '' +
-        '<div class="order-card ' + (approved ? 'approved' : '') + '">' +
-          '<div class="order-head">' +
-            '<div class="order-meta">' +
-              '<div class="order-customer">' + htmlEsc(o.name || '—') + '</div>' +
-              '<div class="order-sub">' + htmlEsc(o.division || '') + ' · ' + htmlEsc(o.date || '') + '</div>' +
-              '<div class="order-wh">📦 ' + (WH_LABEL[o.warehouse] || o.warehouse) + '</div>' +
-            '</div>' +
-            '<span class="order-status ' + statusCls + '">' + htmlEsc(o.status) + '</span>' +
-          '</div>' +
-          '<div class="order-items">' + itemsHtml + '</div>' +
-          '<div class="order-actions">' +
-            '<button class="btn-approve" onclick="approveOrderUI(' + o.startRow + ')" ' + (approved ? 'disabled' : '') + '>' +
-              (approved ? '✓ אושר והורד מהמלאי' : 'אשר הזמנה + הורד מלאי') + '</button>' +
-            '<button class="btn-delete" onclick="deleteOrderUI(' + o.startRow + ')">🗑️</button>' +
-          '</div>' +
-        '</div>';
-    }).join('');
-  }
-
-  async function adminAdjustQty(startRow, row, delta) {
-    const o = adminOrders.find(function (x) { return x.startRow === startRow; });
-    if (!o) return;
-    const it = o.items.find(function (x) { return x.row === row; });
-    if (!it) return;
-    const newQty = Math.max(0, (parseInt(it.qty, 10) || 0) + delta);
-    it.qty = newQty;
-    renderOrders();
-    try {
-      await api('updateOrderItem', { row: row, qty: newQty });
-    } catch (e) {
-      showToast('שמירת הכמות נכשלה: ' + e.message, true);
-    }
-  }
-
-  async function approveOrderUI(startRow) {
-    if (!confirm('לאשר את ההזמנה ולהוריד את הכמויות מהמלאי?')) return;
-    try {
-      const data = await api('approveOrder', { startRow: startRow });
-      if (data && data.ok === false) { showToast(data.error || 'האישור נכשל', true); return; }
-      showToast('ההזמנה אושרה והמלאי עודכן ✓');
-      loadOrders();
-    } catch (e) {
-      showToast('שגיאה באישור: ' + e.message, true);
-    }
-  }
-
-  async function deleteOrderUI(startRow) {
-    if (!confirm('למחוק את ההזמנה לצמיתות?')) return;
-    try {
-      await api('deleteOrder', { startRow: startRow });
-      showToast('ההזמנה נמחקה');
-      loadOrders();
-    } catch (e) {
-      showToast('שגיאה במחיקה: ' + e.message, true);
-    }
-  }
-
-  let adminInventory = { main: [], zuk: [] };
-  let invEditMode = false;
-
-  async function loadInventory() {
-    const el = document.getElementById('inventoryList');
-    el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    try {
-      const data = await api('getInventory', {});
-      adminInventory = data.inventory || { main: [], zuk: [] };
-      renderInventory();
-    } catch (e) {
-      el.innerHTML = '<div class="admin-empty">שגיאה: ' + htmlEsc(e.message) + '</div>';
-    }
-  }
-
-  function renderInventory() {
-    const el = document.getElementById('inventoryList');
-    const secs = [['main', 'מחסן דת'], ['zuk', 'ציוד זו"ק']];
-    let html = secs.map(function (pair) {
-      const wh = pair[0];
-      const arr = adminInventory[wh] || [];
-      if (!arr.length) return '';
-      const rows = arr.map(function (p) {
-        const low = (parseInt(p.stock, 10) || 0) <= 3;
-        if (invEditMode) {
-          return '<div class="inv-row edit">' +
-            '<span class="inv-name">' + htmlEsc(p.name) + '</span>' +
-            '<input type="number" class="inv-qty-input" min="0" value="' + p.stock + '"' +
-              ' data-wh="' + wh + '" data-name="' + htmlEsc(p.name) + '" onchange="invQtyChanged(this)">' +
-            '<label class="inv-exp"><input type="checkbox" ' + (p.exposed ? 'checked' : '') +
-              ' data-wh="' + wh + '" data-name="' + htmlEsc(p.name) + '" onchange="invExposedChanged(this)"> חשוף</label>' +
-          '</div>';
-        }
-        return '<div class="inv-row">' +
-          '<span class="inv-name">' + htmlEsc(p.name) +
-            (p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>') + '</span>' +
-          '<span class="inv-stock ' + (low ? 'low' : '') + '">' + p.stock + '</span>' +
-        '</div>';
-      }).join('');
-      return '<div class="section-title" style="margin-top:14px">' + pair[1] + '</div>' + rows;
-    }).join('');
-    if (!html) html = '<div class="admin-empty">אין פריטים במלאי</div>';
-    el.innerHTML = html;
-  }
-
-  function toggleInvEdit() {
-    invEditMode = !invEditMode;
-    const btn = document.getElementById('editInvBtn');
-    btn.classList.toggle('on', invEditMode);
-    btn.textContent = invEditMode ? '✓ סיום עריכה' : '✎ עריכת מלאי';
-    renderInventory();
-  }
-
-  function localInvItem(wh, name) {
-    return (adminInventory[wh] || []).find(function (x) { return x.name === name; });
-  }
-
-  async function invQtyChanged(input) {
-    const wh = input.dataset.wh, name = input.dataset.name;
-    const qty = Math.max(0, parseInt(input.value, 10) || 0);
-    input.value = qty;
-    const item = localInvItem(wh, name); if (item) item.stock = qty;
-    try { await api('updateInventoryItem', { warehouse: wh, name: name, qty: qty }); showToast('הכמות עודכנה'); }
-    catch (e) { showToast('שגיאה בעדכון: ' + e.message, true); }
-  }
-
-  async function invExposedChanged(input) {
-    const wh = input.dataset.wh, name = input.dataset.name, exposed = input.checked;
-    const item = localInvItem(wh, name); if (item) item.exposed = exposed;
-    try { await api('updateInventoryItem', { warehouse: wh, name: name, exposed: exposed }); showToast(exposed ? 'המוצר חשוף להזמנות' : 'המוצר הוסתר מהזמנות'); }
-    catch (e) { showToast('שגיאה בעדכון: ' + e.message, true); }
-  }
-
-  function toggleReceivePanel() {
-    const panel = document.getElementById('receivePanel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    if (panel.style.display === 'block') document.getElementById('rcName').focus();
-  }
-
-  async function submitReceive() {
-    const wh = document.getElementById('rcWarehouse').value;
-    const name = document.getElementById('rcName').value.trim();
-    const qty = parseInt(document.getElementById('rcQty').value, 10) || 0;
-    const category = document.getElementById('rcCategory').value.trim();
-    const exposed = document.getElementById('rcExposed').checked;
-    if (!name) { showToast('אנא הזן שם מוצר', true); return; }
-    if (qty <= 0) { showToast('אנא הזן כמות חיובית', true); return; }
-    try {
-      const data = await api('receiveGoods', { warehouse: wh, name: name, qty: qty, category: category, exposed: exposed });
-      if (data && data.ok === false) { showToast(data.error || 'הקליטה נכשלה', true); return; }
-      showToast(data.created ? ('נוצר מוצר חדש: ' + name) : ('נוסף למלאי — סה"כ ' + data.newStock));
-      document.getElementById('rcName').value = '';
-      document.getElementById('rcQty').value = '1';
-      document.getElementById('rcCategory').value = '';
-      loadInventory();
-    } catch (e) {
-      showToast('שגיאה בקליטה: ' + e.message, true);
-    }
-  }
-
-  async function loadUsers() {
-    const el = document.getElementById('usersList');
-    el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
-    try {
-      const data = await api('listUsers', {});
-      const users = data.users || [];
-      if (!users.length) { el.innerHTML = '<div class="admin-empty">אין משתמשים רשומים</div>'; return; }
-      el.innerHTML = users.map(function (u) {
-        const isMainAdmin = u.email.toLowerCase() === ADMIN_EMAIL;
-        return '<div class="user-row">' +
-          '<div class="user-info">' +
-            '<div class="user-email">' + htmlEsc(u.email) + '</div>' +
-            '<div class="user-sub">' + htmlEsc(u.name || '') + (u.lastSeen ? ' · כניסה: ' + htmlEsc(u.lastSeen) : '') + '</div>' +
-          '</div>' +
-          (isMainAdmin
-            ? '<span class="order-status approved">מנהל ראשי</span>'
-            : '<select class="role-select" onchange="setRole(\'' + esc(u.email) + '\', this.value)">' +
-                '<option value="user"' + (u.role !== 'admin' ? ' selected' : '') + '>משתמש</option>' +
-                '<option value="admin"' + (u.role === 'admin' ? ' selected' : '') + '>מנהל</option>' +
-              '</select>') +
-          '</div>';
-      }).join('');
-    } catch (e) {
-      el.innerHTML = '<div class="admin-empty">שגיאה: ' + htmlEsc(e.message) + '</div>';
-    }
-  }
-
-  async function setRole(email, role) {
-    try {
-      const data = await api('setUserRole', { email: email, role: role });
-      if (data && data.ok === false) { showToast(data.error || 'העדכון נכשל', true); return; }
-      showToast('ההרשאה עודכנה');
-    } catch (e) {
-      showToast('שגיאה: ' + e.message, true);
-    }
-  }
-
-  // ── TOAST ────────────────────────────────────
-  let toastTimer = null;
-  function showToast(msg, isErr) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.className = 'toast show' + (isErr ? ' err' : '');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { t.className = 'toast'; }, 3000);
-  }
-
-  // ── INIT ─────────────────────────────────────
-  window.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('homeScreen').classList.add('hide');
-    document.getElementById('loginScreen').classList.add('active');
-    initAuthUI();
-  });
-</script>
+<script src="config.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
