@@ -5,7 +5,7 @@ import {
   sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, state,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
 } from './lib.js';
-import { openAdmin, initAdmin } from './admin.js';
+import { openAdmin, initAdmin, invokeFn } from './admin.js';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -387,8 +387,8 @@ async function submitOrder(certMode) {
     }
 
     // 4) התראה במייל למנהלים — לא חוסם; כישלון לא מבטל את ההזמנה
-    sb.functions.invoke('send-new-order', { body: { order_id: order.id } })
-      .catch(err => console.warn('notify', err));
+    invokeFn('send-new-order', { order_id: order.id })
+      .catch(err => console.error('send-new-order:', err.message || err));
 
     state.cart = {};
     updateCartBadge();

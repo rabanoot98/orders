@@ -137,15 +137,32 @@ async function approveOrder(orderId, cardEl) {
   }
 }
 
+// מחלץ את הודעת השגיאה האמיתית מתוך תשובת Edge Function
+export async function invokeFn(name, body) {
+  const { data, error } = await sb.functions.invoke(name, { body });
+  if (error) {
+    let detail = error.message || String(error);
+    if (/not found/i.test(detail) || error.context?.status === 404) {
+      detail = `הפונקציה "${name}" לא פורסמה ב-Supabase`;
+    } else {
+      try {
+        const j = await error.context?.json?.();
+        if (j?.error) detail = j.error;
+      } catch { /* גוף לא-JSON — נשארים עם ההודעה המקורית */ }
+    }
+    throw new Error(detail);
+  }
+  return data;
+}
+
 async function sendReadyEmail(orderId) {
   try {
-    const { data, error } = await sb.functions.invoke('send-order-ready', { body: { order_id: orderId } });
-    if (error) throw error;
-    if (data?.skipped) toast('ההזמנה אושרה (ללא מייל: ' + data.skipped + ')');
+    const data = await invokeFn('send-order-ready', { order_id: orderId });
+    if (data?.skipped) toast('ההזמנה אושרה — ללא מייל: ' + data.skipped, true);
     else if (data?.ok) toast('נשלח מייל למזמין ✉️');
   } catch (err) {
-    console.warn('email', err);
-    toast('ההזמנה אושרה, אך שליחת המייל נכשלה', true);
+    console.error('send-order-ready:', err);
+    toast('המייל נכשל: ' + (err.message || err), true);
   }
 }
 
