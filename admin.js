@@ -4,7 +4,10 @@
 import {
   sb, ADMIN_EMAIL, WH_LABEL, state,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
+  caps, fetchInventory, isMissingColumn,
 } from './lib.js';
+
+const INV_COLS = 'id, warehouse, name, qty, category, exposed';
 
 let inventory = { main: [], zuk: [] };
 let invEditMode = false;
@@ -228,12 +231,9 @@ async function loadInventory() {
   const el = $('inventoryList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
-    const { data, error } = await sb.from('inventory')
-      .select('id, warehouse, name, qty, category, exposed, sort_order')
-      .order('warehouse').order('sort_order').order('name');
-    if (error) throw error;
+    const data = await fetchInventory(() => sb.from('inventory').select(INV_COLS));
     inventory = { main: [], zuk: [] };
-    (data || []).forEach(p => inventory[p.warehouse]?.push(p));
+    data.forEach(p => inventory[p.warehouse]?.push(p));
     renderPicker();
     if ($('invDetail').style.display !== 'none') renderInventory();
   } catch (err) {
@@ -296,8 +296,9 @@ function renderInventory() {
   const rows = arr.map((p, idx) => {
     const low = (p.qty || 0) <= 3;
     if (invEditMode) {
-      // חצי הסדר מוסתרים בזמן חיפוש — הסדר מתייחס לרשימה המלאה
-      const moves = search ? '' : `
+      // חצי הסדר מוסתרים בזמן חיפוש (הסדר מתייחס לרשימה המלאה)
+      // וגם אם migration_03 עוד לא רצה
+      const moves = (search || !caps.sortOrder) ? '' : `
         <div class="inv-move">
           <button data-act="up" ${idx === 0 ? 'disabled' : ''} title="העלה">▲</button>
           <button data-act="down" ${idx === arr.length - 1 ? 'disabled' : ''} title="הורד">▼</button>
@@ -327,13 +328,17 @@ function renderInventory() {
 async function moveInvItem(id, dir) {
   try {
     const { data, error } = await sb.rpc('move_inventory_item', { p_id: id, p_dir: dir });
-    if (error) throw error;
+    if (error) {
+      if (isMissingColumn(error, 'move_inventory_item')) {
+        toast('כדי לשנות סדר יש להריץ את migration_03_sort.sql ב-Supabase', true);
+        return;
+      }
+      throw error;
+    }
     if (data?.moved === false) return;            // כבר בקצה — לא מרעישים
-    const { data: fresh, error: fErr } = await sb.from('inventory')
-      .select('id, warehouse, name, qty, category, exposed, sort_order')
-      .eq('warehouse', invWarehouse).order('sort_order').order('name');
-    if (fErr) throw fErr;
-    inventory[invWarehouse] = fresh || [];
+
+    inventory[invWarehouse] = await fetchInventory(() =>
+      sb.from('inventory').select(INV_COLS).eq('warehouse', invWarehouse));
     renderInventory();
   } catch (err) { toast(friendlyError(err), true); }
 }

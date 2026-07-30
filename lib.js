@@ -75,6 +75,30 @@ export function showError(id, msg) {
   else { e.textContent = ''; e.classList.remove('show'); }
 }
 
+// ── יכולות סכימה ──
+// מתגלה בזמן ריצה: אם migration_03 עוד לא רצה, אין עמודת sort_order
+// והמערכת נופלת חזרה למיון לפי שם במקום להישבר.
+export const caps = { sortOrder: true };
+
+export function isMissingColumn(err, col) {
+  const m = String(err?.message || err || '');
+  return m.includes(col) && /does not exist|could not find|schema cache/i.test(m);
+}
+
+// שולף מלאי עם מיון לפי סדר התצוגה, עם נפילה חיננית למיון לפי שם
+export async function fetchInventory(buildQuery) {
+  if (caps.sortOrder) {
+    const r = await buildQuery().order('sort_order').order('name');
+    if (!r.error) return r.data || [];
+    if (!isMissingColumn(r.error, 'sort_order')) throw r.error;
+    caps.sortOrder = false;
+    console.warn('sort_order חסר — הרץ את migration_03_sort.sql. ממיין לפי שם בינתיים.');
+  }
+  const r2 = await buildQuery().order('name');
+  if (r2.error) throw r2.error;
+  return r2.data || [];
+}
+
 // ── Formatting ──
 export function fmtDate(iso) {
   if (!iso) return '';

@@ -4,6 +4,7 @@
 import {
   sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, state,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
+  fetchInventory,
 } from './lib.js';
 import { openAdmin, initAdmin, invokeFn } from './admin.js';
 
@@ -198,13 +199,11 @@ async function openWarehouse(wh) {
   updateCartBadge();
 
   try {
-    const { data, error } = await sb.from('inventory')
+    const data = await fetchInventory(() => sb.from('inventory')
       .select('name, qty, category')
-      .eq('warehouse', wh).eq('exposed', true).gt('qty', 0)
-      .order('sort_order').order('name');
-    if (error) throw error;
+      .eq('warehouse', wh).eq('exposed', true).gt('qty', 0));
 
-    state.products = data || [];
+    state.products = data;
     state.categories = ['הכל', ...new Set(state.products.map(p => p.category).filter(Boolean))];
     renderCategories();
     renderProducts();
