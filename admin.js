@@ -145,15 +145,18 @@ export async function invokeFn(name, body) {
   const { data, error } = await sb.functions.invoke(name, { body });
   if (error) {
     let detail = error.message || String(error);
+    let payload = null;
     if (/not found/i.test(detail) || error.context?.status === 404) {
       detail = `הפונקציה "${name}" לא פורסמה ב-Supabase`;
     } else {
       try {
-        const j = await error.context?.json?.();
-        if (j?.error) detail = j.error;
+        payload = await error.context?.json?.();
+        if (payload?.error) detail = payload.error;
       } catch { /* גוף לא-JSON — נשארים עם ההודעה המקורית */ }
     }
-    throw new Error(detail);
+    const e = new Error(detail);
+    e.payload = payload;          // כולל diag/hint לצורך אבחון
+    throw e;
   }
   return data;
 }
@@ -529,6 +532,53 @@ async function toggleNotify(id, active) {
   } catch (err) { toast(friendlyError(err), true); }
 }
 
+// בדיקת הגדרות המייל — מציג אבחון מפורט
+async function testEmail() {
+  const btn = $('nfTest');
+  const box = $('nfTestResult');
+  btn.disabled = true; btn.textContent = 'בודק...';
+  box.innerHTML = '<div class="loading"><div class="spinner"></div><div>שולח מייל בדיקה...</div></div>';
+
+  const line = (label, val, good) =>
+    `<div class="inv-row"><span class="inv-name">${label}</span>` +
+    `<span style="font-weight:700;color:${good === null ? 'var(--text)' : good ? 'var(--success)' : 'var(--accent)'}">` +
+    `${esc(val)}</span></div>`;
+
+  try {
+    const data = await invokeFn('send-test-email', {});
+    const d = data.diag || {};
+    box.innerHTML = `<div class="order-card approved">
+      <div class="order-customer" style="color:var(--success)">✅ המייל נשלח בהצלחה</div>
+      <div class="order-sub" style="margin-bottom:8px">נשלח אל ${esc(data.sent_to)} — בדוק בתיבה (וגם בספאם)</div>
+      ${line('שולח', d.gmail_user, true)}
+    </div>`;
+    toast('מייל בדיקה נשלח ✉️');
+  } catch (err) {
+    // invokeFn זורק Error עם ההודעה; הפרטים המלאים בגוף התשובה
+    let d = {}, hint = '', stage = '';
+    try {
+      const raw = err.payload || {};
+      d = raw.diag || {}; hint = raw.hint || ''; stage = raw.stage || '';
+    } catch { /* אין גוף מפורט */ }
+
+    box.innerHTML = `<div class="order-card" style="border-color:var(--accent)">
+      <div class="order-customer" style="color:var(--accent)">❌ שליחת המייל נכשלה</div>
+      <div class="order-sub" style="margin:6px 0 10px">${esc(err.message || '')}</div>
+      ${hint ? `<div class="cert-row" style="background:#fff3cd;color:#7a5b00">💡 ${esc(hint)}</div>` : ''}
+      ${stage ? line('נכשל בשלב', stage, false) : ''}
+      ${d.gmail_user !== undefined ? line('GMAIL_USER', d.gmail_user, d.gmail_user_valid) : ''}
+      ${d.password_set !== undefined ? line('סיסמה הוגדרה', d.password_set ? 'כן' : 'לא', !!d.password_set) : ''}
+      ${d.password_length_after_cleanup !== undefined
+        ? line('אורך סיסמה', d.password_length_after_cleanup + ' תווים (נדרש 16)', d.password_length_ok) : ''}
+      ${d.password_had_spaces ? line('רווחים בסיסמה', 'נמצאו — הוסרו אוטומטית', null) : ''}
+      ${d.gmail_user_had_whitespace ? line('רווחים ב-GMAIL_USER', 'נמצאו — הוסרו אוטומטית', null) : ''}
+    </div>`;
+    toast('בדיקת המייל נכשלה', true);
+  } finally {
+    btn.disabled = false; btn.textContent = '✉️ בדוק מייל';
+  }
+}
+
 async function removeNotify(id, email) {
   if (!confirm(`למחוק את ${email} מרשימת ההתראות?`)) return;
   try {
@@ -602,6 +652,7 @@ export function initAdmin() {
 
   // התראות
   on('refreshNotify', 'click', loadNotify);
+  on('nfTest', 'click', testEmail);
   on('nfAdd', 'click', addNotify);
   on('nfEmail', 'keydown', (e) => { if (e.key === 'Enter') addNotify(); });
   on('nfLabel', 'keydown', (e) => { if (e.key === 'Enter') addNotify(); });

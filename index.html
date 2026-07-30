@@ -254,8 +254,12 @@
     <div class="admin-pane" id="notifyPane">
       <div class="admin-toolbar">
         <h3>התראות על הזמנה חדשה</h3>
-        <button class="icon-btn" id="refreshNotify">↻ רענן</button>
+        <div class="toolbar-btns">
+          <button class="icon-btn" style="background:var(--accent2)" id="nfTest">✉️ בדוק מייל</button>
+          <button class="icon-btn" id="refreshNotify">↻ רענן</button>
+        </div>
       </div>
+      <div id="nfTestResult"></div>
       <div class="rc-hint" style="text-align:right;margin:0 0 12px">
         הכתובות הבאות יקבלו מייל בכל פעם שנכנסת הזמנה חדשה.
       </div>
