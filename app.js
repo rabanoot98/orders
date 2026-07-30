@@ -201,7 +201,7 @@ async function openWarehouse(wh) {
     const { data, error } = await sb.from('inventory')
       .select('name, qty, category')
       .eq('warehouse', wh).eq('exposed', true).gt('qty', 0)
-      .order('name');
+      .order('sort_order').order('name');
     if (error) throw error;
 
     state.products = data || [];
@@ -238,11 +238,11 @@ function renderProducts() {
       <div>
         <div class="product-name">${esc(p.name)}</div>
         ${p.category ? `<div class="product-cat">${esc(p.category)}</div>` : ''}
-        <div class="product-stock">במלאי: ${p.qty}</div>
+        ${qty >= p.qty ? '<div class="product-stock">הגעת לכמות המרבית</div>' : ''}
       </div>
       <div class="qty-control">
         <button class="qty-btn minus" data-act="dec" ${qty === 0 ? 'disabled' : ''}>−</button>
-        <input type="number" class="qty-display" value="${qty}" min="0" max="${p.qty}" data-act="set">
+        <input type="number" class="qty-display" value="${qty}" min="0" data-act="set">
         <button class="qty-btn plus" data-act="inc" ${qty >= p.qty ? 'disabled' : ''}>+</button>
       </div>
     </div>`;

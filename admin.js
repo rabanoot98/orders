@@ -229,8 +229,8 @@ async function loadInventory() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const { data, error } = await sb.from('inventory')
-      .select('id, warehouse, name, qty, category, exposed')
-      .order('warehouse').order('name');
+      .select('id, warehouse, name, qty, category, exposed, sort_order')
+      .order('warehouse').order('sort_order').order('name');
     if (error) throw error;
     inventory = { main: [], zuk: [] };
     (data || []).forEach(p => inventory[p.warehouse]?.push(p));
@@ -293,10 +293,17 @@ function renderInventory() {
     return;
   }
 
-  const rows = arr.map(p => {
+  const rows = arr.map((p, idx) => {
     const low = (p.qty || 0) <= 3;
     if (invEditMode) {
+      // חצי הסדר מוסתרים בזמן חיפוש — הסדר מתייחס לרשימה המלאה
+      const moves = search ? '' : `
+        <div class="inv-move">
+          <button data-act="up" ${idx === 0 ? 'disabled' : ''} title="העלה">▲</button>
+          <button data-act="down" ${idx === arr.length - 1 ? 'disabled' : ''} title="הורד">▼</button>
+        </div>`;
       return `<div class="inv-row" data-inv="${p.id}">
+        ${moves}
         <span class="inv-name">${esc(p.name)}</span>
         <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
         <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
@@ -314,6 +321,21 @@ function renderInventory() {
 
   $('inventoryList').innerHTML =
     `<div class="section-title" style="margin-top:4px">${esc(WH_LABEL[invWarehouse])} — ${summary}</div>${rows}`;
+}
+
+// הזזת מוצר בסדר התצוגה
+async function moveInvItem(id, dir) {
+  try {
+    const { data, error } = await sb.rpc('move_inventory_item', { p_id: id, p_dir: dir });
+    if (error) throw error;
+    if (data?.moved === false) return;            // כבר בקצה — לא מרעישים
+    const { data: fresh, error: fErr } = await sb.from('inventory')
+      .select('id, warehouse, name, qty, category, exposed, sort_order')
+      .eq('warehouse', invWarehouse).order('sort_order').order('name');
+    if (fErr) throw fErr;
+    inventory[invWarehouse] = fresh || [];
+    renderInventory();
+  } catch (err) { toast(friendlyError(err), true); }
 }
 
 async function updateInvField(id, patch) {
@@ -545,6 +567,13 @@ export function initAdmin() {
     b.classList.toggle('on', invEditMode);
     b.textContent = invEditMode ? '✓ סיום' : '✎ עריכה';
     renderInventory();
+  });
+
+  // מלאי — הזזת מוצר בסדר
+  on('inventoryList', 'click', (e) => {
+    const btn = e.target.closest('[data-act="up"], [data-act="down"]');
+    if (!btn || btn.disabled) return;
+    moveInvItem(+btn.closest('[data-inv]').dataset.inv, btn.dataset.act);
   });
 
   // מלאי — עריכה

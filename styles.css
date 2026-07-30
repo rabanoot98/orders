@@ -562,6 +562,19 @@ input.qty-display:focus { outline: 1px solid var(--accent2); border-radius: 4px;
 }
 .inv-qty-input::-webkit-outer-spin-button, .inv-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .inv-qty-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
+.inv-move { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.inv-move button {
+  width: 30px; height: 21px; padding: 0;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--text); font-size: .62rem; line-height: 1;
+  cursor: pointer; border-radius: 5px; transition: all .15s;
+}
+.inv-move button:first-child { border-radius: 7px 7px 3px 3px; }
+.inv-move button:last-child  { border-radius: 3px 3px 7px 7px; }
+.inv-move button:hover:not(:disabled) { background: var(--accent2); color: #fff; border-color: var(--accent2); }
+.inv-move button:active:not(:disabled) { transform: scale(.9); }
+.inv-move button:disabled { opacity: .25; cursor: not-allowed; }
+
 .inv-exp { display: flex; align-items: center; gap: 6px; font-size: .8rem; color: var(--text-light); white-space: nowrap; cursor: pointer; }
 .inv-exp input { width: 20px; height: 20px; accent-color: var(--success); cursor: pointer; }
 
