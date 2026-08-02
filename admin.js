@@ -305,13 +305,13 @@ function renderInventory() {
   const rows = arr.map((p, idx) => {
     const low = (p.qty || 0) <= 3;
     if (invEditMode) {
-      // חצי הסדר מוסתרים בזמן חיפוש (הסדר מתייחס לרשימה המלאה)
+      // סידור מוסתר בזמן חיפוש (הסדר מתייחס לרשימה המלאה)
       // וגם אם migration_03 עוד לא רצה
-      const moves = (search || !caps.sortOrder) ? '' : `
-        <div class="inv-move">
-          <button data-act="up" ${idx === 0 ? 'disabled' : ''} title="העלה">▲</button>
-          <button data-act="down" ${idx === arr.length - 1 ? 'disabled' : ''} title="הורד">▼</button>
-        </div>`;
+      const sortable = !search && caps.sortOrder;
+      const moves = !sortable ? '' : `
+        <button class="inv-drag" title="גרור לשינוי מיקום" aria-label="גרור לשינוי מיקום">⣿</button>
+        <button class="inv-top" data-act="top" title="העבר לראש הרשימה"
+                aria-label="העבר לראש הרשימה" ${idx === 0 ? 'disabled' : ''}>⤒</button>`;
       return `<div class="inv-row edit" data-inv="${p.id}">
         <div class="inv-edit-main">
           ${moves}
@@ -338,23 +338,121 @@ function renderInventory() {
     `<div class="section-title" style="margin-top:4px">${esc(WH_LABEL[invWarehouse])} — ${summary}</div>${rows}`;
 }
 
-// הזזת מוצר בסדר התצוגה
-async function moveInvItem(id, dir) {
+// ── סידור מחדש ──────────────────────────────────────────────
+// שומר את הסדר החדש של כל המחסן. אם השמירה נכשלת — חוזרים
+// לסדר הקודם, כדי שהמסך לא יראה סדר שלא נשמר.
+async function persistOrder(ids, prevOrder) {
   try {
-    const { data, error } = await sb.rpc('move_inventory_item', { p_id: id, p_dir: dir });
+    const { error } = await sb.rpc('reorder_inventory', {
+      p_warehouse: invWarehouse, p_ids: ids,
+    });
     if (error) {
-      if (isMissingColumn(error, 'move_inventory_item')) {
-        toast('כדי לשנות סדר יש להריץ את migration_03_sort.sql ב-Supabase', true);
-        return;
+      if (/could not find|does not exist|schema cache/i.test(String(error.message))) {
+        throw new Error('כדי לסדר מחדש יש להריץ את migration_06 ב-Supabase');
       }
       throw error;
     }
-    if (data?.moved === false) return;            // כבר בקצה — לא מרעישים
+    return true;
+  } catch (err) {
+    if (prevOrder) { inventory[invWarehouse] = prevOrder; renderInventory(); }
+    toast(friendlyError(err), true);
+    return false;
+  }
+}
 
-    inventory[invWarehouse] = await fetchInventory(() =>
-      sb.from('inventory').select(INV_COLS).eq('warehouse', invWarehouse));
-    renderInventory();
-  } catch (err) { toast(friendlyError(err), true); }
+// מסדר את המערך המקומי לפי רשימת מזהים
+function applyLocalOrder(ids) {
+  const byId = new Map((inventory[invWarehouse] || []).map(p => [p.id, p]));
+  inventory[invWarehouse] = ids.map(id => byId.get(id)).filter(Boolean);
+}
+
+// העברה לראש הרשימה — פותר את המקרה המתיש של מעבר ארוך
+async function moveToTop(id) {
+  const prev = [...(inventory[invWarehouse] || [])];
+  const ids = [id, ...prev.filter(p => p.id !== id).map(p => p.id)];
+  applyLocalOrder(ids);
+  renderInventory();
+  $('inventoryList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (await persistOrder(ids, prev)) toast('הועבר לראש הרשימה ✓');
+}
+
+// ── גרירה (עכבר + מגע) ──────────────────────────────────────
+let drag = null;
+let autoScrollTimer = null;
+
+function stopAutoScroll() {
+  if (autoScrollTimer) { cancelAnimationFrame(autoScrollTimer); autoScrollTimer = null; }
+}
+
+// גלילה אוטומטית כשגוררים לקצה המסך
+function runAutoScroll() {
+  if (!drag) return stopAutoScroll();
+  const margin = 90, max = 14;
+  const y = drag.lastY;
+  let dy = 0;
+  if (y < margin) dy = -max * (1 - y / margin);
+  else if (y > innerHeight - margin) dy = max * (1 - (innerHeight - y) / margin);
+  if (dy) window.scrollBy(0, dy);
+  autoScrollTimer = requestAnimationFrame(runAutoScroll);
+}
+
+function onDragStart(e) {
+  const handle = e.target.closest('.inv-drag');
+  if (!handle || e.button > 0) return;
+  const row = handle.closest('.inv-row');
+  if (!row) return;
+
+  e.preventDefault();
+  drag = {
+    row,
+    list: $('inventoryList'),
+    grabY: e.clientY,
+    lastY: e.clientY,
+    moved: false,
+    prev: [...(inventory[invWarehouse] || [])],
+  };
+  row.classList.add('dragging');
+  document.body.classList.add('dragging-active');
+  handle.setPointerCapture(e.pointerId);
+  autoScrollTimer = requestAnimationFrame(runAutoScroll);
+}
+
+function onDragMove(e) {
+  if (!drag) return;
+  drag.lastY = e.clientY;
+  drag.row.style.transform = `translateY(${e.clientY - drag.grabY}px)`;
+
+  // היעד = השורה הראשונה שהסמן נמצא מעל אמצעה; null => סוף הרשימה
+  const others = [...drag.list.querySelectorAll('.inv-row[data-inv]')]
+    .filter(r => r !== drag.row);
+
+  let ref = null;
+  for (const r of others) {
+    const b = r.getBoundingClientRect();
+    if (e.clientY < b.top + b.height / 2) { ref = r; break; }
+  }
+
+  // מזיזים רק אם המיקום באמת משתנה
+  if (ref === drag.row.nextElementSibling) return;
+  drag.list.insertBefore(drag.row, ref);
+  drag.grabY = e.clientY;
+  drag.row.style.transform = '';
+  drag.moved = true;
+}
+
+async function onDragEnd() {
+  if (!drag) return;
+  const { row, list, moved, prev } = drag;
+  row.style.transform = '';
+  row.classList.remove('dragging');
+  document.body.classList.remove('dragging-active');
+  stopAutoScroll();
+  drag = null;
+
+  if (!moved) return;
+  const ids = [...list.querySelectorAll('.inv-row[data-inv]')].map(r => +r.dataset.inv);
+  applyLocalOrder(ids);
+  if (await persistOrder(ids, prev)) toast('הסדר נשמר ✓');
 }
 
 // שינוי שם מוצר — מעדכן גם הזמנות ממתינות כדי שהאישור ימשיך להוריד מלאי
@@ -669,12 +767,18 @@ export function initAdmin() {
     renderInventory();
   });
 
-  // מלאי — הזזת מוצר בסדר
+  // מלאי — העברה לראש הרשימה
   on('inventoryList', 'click', (e) => {
-    const btn = e.target.closest('[data-act="up"], [data-act="down"]');
+    const btn = e.target.closest('[data-act="top"]');
     if (!btn || btn.disabled) return;
-    moveInvItem(+btn.closest('[data-inv]').dataset.inv, btn.dataset.act);
+    moveToTop(+btn.closest('[data-inv]').dataset.inv);
   });
+
+  // מלאי — גרירה לשינוי מיקום (pointer events => עכבר ומגע כאחד)
+  on('inventoryList', 'pointerdown', onDragStart);
+  on('inventoryList', 'pointermove', onDragMove);
+  on('inventoryList', 'pointerup', onDragEnd);
+  on('inventoryList', 'pointercancel', onDragEnd);
 
   // מלאי — עריכה
   on('inventoryList', 'change', (e) => {
