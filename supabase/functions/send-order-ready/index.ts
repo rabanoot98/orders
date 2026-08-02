@@ -5,7 +5,7 @@
 // ============================================================
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import {
-  readMailEnv, sendMail, layout, metaTable, itemsTable, notice, esc,
+  readMailEnv, sendMail, layout, metaTable, itemsTable, notice, esc, warehouseTheme,
 } from "../_shared/mailer.ts";
 
 const cors = {
@@ -57,10 +57,10 @@ Deno.serve(async (req) => {
     if (oErr || !order) return json({ error: "ההזמנה לא נמצאה" }, 404);
     if (!order.email) return json({ ok: false, skipped: "אין כתובת מייל להזמנה זו" });
 
-    const isZuk = order.warehouse === "zuk";
-    const whLabel = isZuk ? 'ציוד זו"ק' : "מחסן דת";
-    const headColor = isZuk ? "#1a3a2e" : "#1c1c2e";
-    const accent = isZuk ? "#3a9e6f" : "#457b9d";
+    const wh = warehouseTheme(order.warehouse);
+    const whLabel = wh.label;
+    const headColor = wh.head;
+    const accent = wh.accent;
     const items = (order.order_items ?? []) as Array<{ name: string; qty: number }>;
     const units = items.reduce((s, i) => s + (Number(i.qty) || 0), 0);
 

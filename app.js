@@ -2,7 +2,7 @@
 // אפליקציה ראשית: כניסה, פרופיל, הזמנות
 // ============================================================
 import {
-  sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, state,
+  sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
   fetchInventory,
 } from './lib.js';
@@ -12,6 +12,18 @@ import { openAdmin, initAdmin, invokeFn } from './admin.js';
 export function goHome() {
   state.warehouse = null;
   showScreen('homeScreen');
+}
+
+// כרטיסי המחסנים במסך הבית — נבנים מ-WAREHOUSES
+function renderWarehouseCards() {
+  $('warehouseGrid').innerHTML = WH_KEYS.map((wh) => {
+    const c = WAREHOUSES[wh];
+    return `<div class="warehouse-card ${wh}" data-wh="${wh}">
+      <div class="wh-icon">${c.icon}</div>
+      <div class="wh-title">${esc(c.label)}</div>
+      <div class="wh-sub">${esc(c.sub)}</div>
+    </div>`;
+  }).join('');
 }
 
 function afterAuthScreen() {
@@ -177,12 +189,12 @@ async function openWarehouse(wh) {
   state.warehouse = wh;
   state.cart = {};
   state.activeCategory = 'הכל';
-  const zuk = wh === 'zuk';
+  const cfg = WAREHOUSES[wh] || WAREHOUSES.main;
 
-  showScreen('orderScreen', { title: WH_LABEL[wh], back: true, zuk, keepCart: true });
-  $('prodSectionTitle').textContent = zuk ? 'בחר ציוד' : 'בחר מוצרים';
+  showScreen('orderScreen', { title: cfg.label, back: true, wh, keepCart: true });
+  $('prodSectionTitle').textContent = `בחר ${cfg.noun}`;
   $('prodSearch').value = '';
-  $('prodSearch').placeholder = zuk ? 'חיפוש ציוד...' : 'חיפוש מוצר...';
+  $('prodSearch').placeholder = `חיפוש ${cfg.noun === 'ציוד' ? 'ציוד' : 'מוצר'}...`;
 
   // פרטי לקוח: שמורים למשתמש רשום, ידניים לאורח
   const known = !state.isGuest && state.profile?.initials && state.profile?.phone;
@@ -263,14 +275,14 @@ function updateCartBadge() {
   const badge = $('cartBadge');
   $('cartCount').textContent = count + ' פריטים';
   badge.style.display = count > 0 ? 'block' : 'none';
-  badge.className = 'cart-badge' + (state.warehouse === 'zuk' ? ' zuk' : '');
+  badge.className = 'cart-badge';
 }
 
 // ── סל ──────────────────────────────────────────────────────
 function openCart() {
   renderCart();
   $('cartOverlay').classList.add('open');
-  $('submitBtn').className = 'submit-btn' + (state.warehouse === 'zuk' ? ' zuk' : '');
+  $('submitBtn').className = 'submit-btn';
   $('submitBtn').disabled = state.submitting;
 }
 function closeCart() { $('cartOverlay').classList.remove('open'); }
@@ -279,14 +291,13 @@ function renderCart() {
   const items = Object.entries(state.cart);
   const box = $('cartItems');
   if (!items.length) { box.innerHTML = '<div class="cart-empty">הסל ריק</div>'; return; }
-  const zuk = state.warehouse === 'zuk';
   box.innerHTML = items.map(([name, v]) => `
     <div class="cart-item" data-name="${esc(name)}">
       <div class="cart-item-info"><div class="cart-item-name">${esc(name)}</div></div>
       <div class="cart-item-controls">
         <button class="cart-qty-btn" data-act="dec" ${v.qty <= 1 ? 'disabled' : ''}>−</button>
         <span class="cart-qty-num">${v.qty}</span>
-        <button class="cart-qty-btn plus ${zuk ? 'zuk-btn' : ''}" data-act="inc" ${v.qty >= v.max ? 'disabled' : ''}>+</button>
+        <button class="cart-qty-btn plus" data-act="inc" ${v.qty >= v.max ? 'disabled' : ''}>+</button>
         <button class="cart-trash-btn" data-act="del" title="הסר">🗑️</button>
       </div>
     </div>`).join('');
@@ -485,8 +496,11 @@ function wire() {
   // ניווט
   on('backBtn', 'click', goHome);
   on('newOrderBtn', 'click', goHome);
-  document.querySelectorAll('.warehouse-card').forEach(card =>
-    card.addEventListener('click', () => openWarehouse(card.dataset.wh)));
+  // האזנה על המכל — הכרטיסים נבנים דינמית
+  on('warehouseGrid', 'click', (e) => {
+    const card = e.target.closest('.warehouse-card');
+    if (card) openWarehouse(card.dataset.wh);
+  });
 
   // מוצרים
   on('prodSearch', 'input', renderProducts);
@@ -533,6 +547,7 @@ function wire() {
 (async function init() {
   if (!IS_CONFIGURED) { showScreen('configScreen'); return; }
 
+  renderWarehouseCards();
   wire();
   initAdmin();
   setAuthMode('signin');

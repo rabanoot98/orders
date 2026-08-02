@@ -11,6 +11,16 @@ import nodemailer from "npm:nodemailer@6.9.16";
 
 export const FROM_NAME = "מערכת הזמנות ציוד דת";
 
+// ── מחסנים ──
+// חייב להישאר תואם ל-WAREHOUSES ב-orders/lib.js
+export const WAREHOUSES: Record<string, { label: string; head: string; accent: string }> = {
+  main:     { label: "מחסן דת",   head: "#1c1c2e", accent: "#457b9d" },
+  zuk:      { label: 'ציוד זו"ק', head: "#1a3a2e", accent: "#3a9e6f" },
+  holidays: { label: "מחסן חגים", head: "#4a2d1a", accent: "#c9822e" },
+};
+
+export const warehouseTheme = (wh: string) => WAREHOUSES[wh] ?? WAREHOUSES.main;
+
 export function readMailEnv() {
   const rawUser = Deno.env.get("GMAIL_USER");
   const rawPass = Deno.env.get("GMAIL_APP_PASSWORD");

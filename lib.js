@@ -13,7 +13,21 @@ export const sb = IS_CONFIGURED
     })
   : null;
 
-export const WH_LABEL = { main: 'מחסן דת', zuk: 'ציוד זו"ק' };
+// ── מחסנים ──
+// מקור אמת יחיד. הוספת מחסן = רשומה כאן + הרחבת אילוץ ה-CHECK במסד.
+// theme קובע את ערכת הצבעים (ראה body[data-wh] ב-styles.css).
+export const WAREHOUSES = {
+  main:     { label: 'מחסן דת',   icon: '📦', sub: 'הזמנת ציוד דת', noun: 'מוצרים', sheet: 'מלאי' },
+  zuk:      { label: 'ציוד זו"ק', icon: '🪖', sub: 'מחסן זוק',      noun: 'ציוד',   sheet: 'מחסן זוק' },
+  holidays: { label: 'מחסן חגים', icon: '🕎', sub: 'ציוד לחגים',    noun: 'ציוד',   sheet: 'מחסן חגים' },
+};
+
+export const WH_KEYS = Object.keys(WAREHOUSES);
+export const WH_LABEL = Object.fromEntries(
+  WH_KEYS.map((k) => [k, WAREHOUSES[k].label]),
+);
+export const emptyByWarehouse = () =>
+  Object.fromEntries(WH_KEYS.map((k) => [k, []]));
 
 export const state = {
   user: null,
@@ -49,8 +63,9 @@ export function showScreen(id, opts = {}) {
   $('headerTitle').textContent = opts.title || 'מערכת הזמנות';
   $('headerSub').textContent = opts.sub || 'רבנות אוגדה 98';
   $('backBtn').classList.toggle('visible', !!opts.back);
-  $('mainHeader').classList.toggle('zuk-mode', !!opts.zuk);
-  document.body.classList.toggle('zuk-mode', !!opts.zuk);
+  // ערכת הצבעים נגזרת מהמחסן הפעיל דרך data-wh (ראה styles.css)
+  if (opts.wh) document.body.dataset.wh = opts.wh;
+  else delete document.body.dataset.wh;
   if (!opts.keepCart) $('cartBadge').style.display = 'none';
   closeAccountMenu();
   window.scrollTo(0, 0);

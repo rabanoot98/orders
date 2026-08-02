@@ -2,14 +2,14 @@
 // ממשק ניהול: הזמנות, ארכיון, מלאי, משתמשים
 // ============================================================
 import {
-  sb, ADMIN_EMAIL, WH_LABEL, state,
+  sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
   caps, fetchInventory, isMissingColumn,
 } from './lib.js';
 
 const INV_COLS = 'id, warehouse, name, qty, category, exposed';
 
-let inventory = { main: [], zuk: [] };
+let inventory = emptyByWarehouse();
 let invEditMode = false;
 let invWarehouse = 'main';   // המחסן המוצג כרגע בלשונית המלאי
 
@@ -235,7 +235,7 @@ async function loadInventory() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const data = await fetchInventory(() => sb.from('inventory').select(INV_COLS));
-    inventory = { main: [], zuk: [] };
+    inventory = emptyByWarehouse();
     data.forEach(p => inventory[p.warehouse]?.push(p));
     renderPicker();
     if ($('invDetail').style.display !== 'none') renderInventory();
@@ -245,18 +245,24 @@ async function loadInventory() {
   }
 }
 
-// סיכום לכל מחסן בכרטיסי הבחירה
+// כרטיסי בחירת מחסן + סיכום לכל אחד — נבנים מ-WAREHOUSES
 function renderPicker() {
-  [['main', 'cntMain', 'metaMain'], ['zuk', 'cntZuk', 'metaZuk']].forEach(([wh, cntId, metaId]) => {
+  $('invPickerGrid').innerHTML = WH_KEYS.map((wh) => {
+    const c = WAREHOUSES[wh];
     const arr = inventory[wh] || [];
-    $(cntId).textContent = arr.length;
     const low = arr.filter(p => (p.qty || 0) <= 3).length;
     const hidden = arr.filter(p => !p.exposed).length;
     const bits = [];
     if (low) bits.push(`<span class="low">${low} במלאי נמוך</span>`);
     if (hidden) bits.push(`${hidden} מוסתרים`);
-    $(metaId).innerHTML = bits.join(' · ');
-  });
+    return `<div class="inv-pick-card ${wh}" data-wh="${wh}">
+      <div class="inv-pick-icon">${c.icon}</div>
+      <div class="inv-pick-title">${esc(c.label)}</div>
+      <div class="inv-pick-count">${arr.length} פריטים</div>
+      <div class="inv-pick-meta">${bits.join(' · ')}</div>
+      <div class="inv-pick-arrow">‹</div>
+    </div>`;
+  }).join('');
 }
 
 // מעבר בין מסך הבחירה למסך המחסן
@@ -350,7 +356,7 @@ async function updateInvField(id, patch) {
   try {
     const { error } = await sb.from('inventory').update(patch).eq('id', id);
     if (error) throw error;
-    const all = [...inventory.main, ...inventory.zuk];
+    const all = WH_KEYS.flatMap(k => inventory[k] || []);
     Object.assign(all.find(p => p.id === id) || {}, patch);
     toast('עודכן ✓');
   } catch (err) { toast(friendlyError(err), true); }
@@ -400,7 +406,8 @@ async function exportInventory() {
     if (error) throw error;
 
     const wb = XLSX.utils.book_new();
-    [['main', 'מלאי'], ['zuk', 'מחסן זוק']].forEach(([wh, sheetName]) => {
+    WH_KEYS.forEach((wh) => {
+      const sheetName = WAREHOUSES[wh].sheet;
       const rows = (data || []).filter(p => p.warehouse === wh).map(p => ({
         'פריט': p.name,
         'כמות': p.qty,
@@ -608,9 +615,11 @@ export function initAdmin() {
     if (open) $('rcName').focus();
   });
 
-  // כניסה למחסן / חזרה לבחירה
-  document.querySelectorAll('.inv-pick-card').forEach(card =>
-    card.addEventListener('click', () => openInvWarehouse(card.dataset.wh)));
+  // כניסה למחסן / חזרה לבחירה — האזנה על המכל, הכרטיסים דינמיים
+  on('invPickerGrid', 'click', (e) => {
+    const card = e.target.closest('.inv-pick-card');
+    if (card) openInvWarehouse(card.dataset.wh);
+  });
   on('invBackBtn', 'click', showInvPicker);
 
   // חיפוש במלאי

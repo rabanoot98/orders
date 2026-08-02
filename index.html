@@ -94,18 +94,8 @@
       <h2>מה תרצה להזמין?</h2>
       <p>בחר מאיזה מחסן ברצונך להזמין</p>
     </div>
-    <div class="warehouse-grid">
-      <div class="warehouse-card main" data-wh="main">
-        <div class="wh-icon">📦</div>
-        <div class="wh-title">מחסן דת</div>
-        <div class="wh-sub">הזמנת ציוד דת</div>
-      </div>
-      <div class="warehouse-card zuk" data-wh="zuk">
-        <div class="wh-icon">🪖</div>
-        <div class="wh-title">ציוד זו"ק</div>
-        <div class="wh-sub">מחסן זוק</div>
-      </div>
-    </div>
+    <!-- נבנה דינמית מ-WAREHOUSES ב-lib.js -->
+    <div class="warehouse-grid" id="warehouseGrid"></div>
   </div>
 
   <!-- ══ ORDER FORM ══ -->
@@ -190,22 +180,8 @@
           </div>
         </div>
 
-        <div class="inv-picker-grid">
-          <div class="inv-pick-card main" data-wh="main">
-            <div class="inv-pick-icon">📦</div>
-            <div class="inv-pick-title">מחסן דת</div>
-            <div class="inv-pick-count"><span id="cntMain">–</span> פריטים</div>
-            <div class="inv-pick-meta" id="metaMain"></div>
-            <div class="inv-pick-arrow">‹</div>
-          </div>
-          <div class="inv-pick-card zuk" data-wh="zuk">
-            <div class="inv-pick-icon">🪖</div>
-            <div class="inv-pick-title">ציוד זו"ק</div>
-            <div class="inv-pick-count"><span id="cntZuk">–</span> פריטים</div>
-            <div class="inv-pick-meta" id="metaZuk"></div>
-            <div class="inv-pick-arrow">‹</div>
-          </div>
-        </div>
+        <!-- נבנה דינמית מ-WAREHOUSES ב-lib.js -->
+        <div class="inv-picker-grid" id="invPickerGrid"></div>
       </div>
 
       <!-- מלאי של מחסן בודד -->
