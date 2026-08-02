@@ -312,11 +312,16 @@ function renderInventory() {
           <button data-act="up" ${idx === 0 ? 'disabled' : ''} title="העלה">▲</button>
           <button data-act="down" ${idx === arr.length - 1 ? 'disabled' : ''} title="הורד">▼</button>
         </div>`;
-      return `<div class="inv-row" data-inv="${p.id}">
-        ${moves}
-        <span class="inv-name">${esc(p.name)}</span>
-        <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
-        <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
+      return `<div class="inv-row edit" data-inv="${p.id}">
+        <div class="inv-edit-main">
+          ${moves}
+          <input type="text" class="inv-name-input" value="${esc(p.name)}"
+                 data-act="name" maxlength="120" aria-label="שם המוצר">
+        </div>
+        <div class="inv-edit-side">
+          <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
+          <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
+        </div>
       </div>`;
     }
     return `<div class="inv-row">
@@ -350,6 +355,37 @@ async function moveInvItem(id, dir) {
       sb.from('inventory').select(INV_COLS).eq('warehouse', invWarehouse));
     renderInventory();
   } catch (err) { toast(friendlyError(err), true); }
+}
+
+// שינוי שם מוצר — מעדכן גם הזמנות ממתינות כדי שהאישור ימשיך להוריד מלאי
+async function renameInvItem(id, newName, inputEl) {
+  const item = WH_KEYS.flatMap(k => inventory[k] || []).find(p => p.id === id);
+  const oldName = item?.name ?? '';
+  const trimmed = (newName || '').trim();
+
+  if (!trimmed) { inputEl.value = oldName; toast('שם המוצר לא יכול להיות ריק', true); return; }
+  if (trimmed === oldName) { inputEl.value = oldName; return; }
+
+  inputEl.disabled = true;
+  try {
+    const { data, error } = await sb.rpc('rename_inventory_item', { p_id: id, p_name: trimmed });
+    if (error) {
+      if (/could not find|does not exist|schema cache/i.test(String(error.message))) {
+        throw new Error('כדי לשנות שמות יש להריץ את migration_05 ב-Supabase');
+      }
+      throw error;
+    }
+    if (item) item.name = data.name;
+    inputEl.value = data.name;
+
+    const n = data.pending_items_updated || 0;
+    toast(n ? `השם עודכן — וגם ב-${n} פריטים בהזמנות ממתינות ✓` : 'השם עודכן ✓');
+  } catch (err) {
+    inputEl.value = oldName;                       // החזרה למצב הקודם
+    toast(friendlyError(err), true);
+  } finally {
+    inputEl.disabled = false;
+  }
 }
 
 async function updateInvField(id, patch) {
@@ -650,6 +686,20 @@ export function initAdmin() {
       updateInvField(id, { qty });
     } else if (e.target.dataset.act === 'exp') {
       updateInvField(id, { exposed: e.target.checked });
+    } else if (e.target.dataset.act === 'name') {
+      renameInvItem(id, e.target.value, e.target);
+    }
+  });
+
+  // Enter מסיים עריכת שם, Esc מבטל
+  on('inventoryList', 'keydown', (e) => {
+    if (e.target.dataset.act !== 'name') return;
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    if (e.key === 'Escape') {
+      const id = +e.target.closest('[data-inv]').dataset.inv;
+      const item = WH_KEYS.flatMap(k => inventory[k] || []).find(p => p.id === id);
+      if (item) e.target.value = item.name;
+      e.target.blur();
     }
   });
 

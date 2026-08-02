@@ -578,6 +578,33 @@ body[data-wh] .submit-btn { background: var(--wh-accent); }
 }
 .inv-qty-input::-webkit-outer-spin-button, .inv-qty-input::-webkit-inner-spin-button { -webkit-appearance: none; }
 .inv-qty-input:focus { outline: none; border-color: var(--accent2); background: #fff; }
+/* ── שורת מלאי במצב עריכה ── */
+.inv-row.edit { flex-wrap: wrap; align-items: center; gap: 8px; }
+.inv-edit-main { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; min-width: 0; }
+.inv-edit-side { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; margin-right: auto; }
+
+.inv-name-input {
+  flex: 1; min-width: 0;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Heebo', sans-serif;
+  font-size: .9rem; font-weight: 600;
+  direction: rtl; background: #fafaf8; color: var(--text);
+  transition: border-color .18s, background .18s;
+}
+.inv-name-input:hover { border-color: #cfc8c0; }
+.inv-name-input:focus {
+  outline: none; border-color: var(--accent2);
+  background: #fff; box-shadow: 0 0 0 3px rgba(69,123,157,.1);
+}
+.inv-name-input:disabled { opacity: .55; cursor: wait; }
+
+/* במסכים רחבים הכל בשורה אחת */
+@media (min-width: 560px) {
+  .inv-edit-main { flex: 1 1 auto; }
+}
+
 .inv-move { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
 .inv-move button {
   width: 30px; height: 21px; padding: 0;
