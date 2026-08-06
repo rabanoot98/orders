@@ -81,7 +81,8 @@ function orderCard(o, archived) {
       <span class="order-item-name">${esc(it.name)}</span>
       ${archived ? `<span class="oi-qty">×${it.qty}</span>` : `
         <button class="oi-qty-btn" data-act="dec">−</button>
-        <span class="oi-qty">${it.qty}</span>
+        <input type="number" class="oi-qty-input" value="${it.qty}" min="0"
+               data-act="qty" data-prev="${it.qty}" inputmode="numeric" aria-label="כמות">
         <button class="oi-qty-btn" data-act="inc">+</button>
         <button class="oi-qty-btn" data-act="rm" title="הסר">×</button>`}
     </div>`).join('');
@@ -191,20 +192,54 @@ async function markCollected(orderId) {
   } catch (err) { toast(friendlyError(err), true); }
 }
 
-async function changeItemQty(itemId, delta, rowEl) {
-  const span = rowEl.querySelector('.oi-qty');
-  const next = Math.max(0, (parseInt(span.textContent, 10) || 0) + delta);
+// שמירת כמות פריט בהזמנה. qty=0 מסיר את הפריט (order_items מחייב qty > 0).
+async function setItemQty(itemId, qty, rowEl) {
+  const input = rowEl.querySelector('.oi-qty-input');
+  const prev = Number(input?.dataset.prev ?? input?.value ?? 0);
+  qty = Math.max(0, parseInt(qty, 10) || 0);
+
+  if (qty === prev) { if (input) input.value = prev; return; }
+
+  if (input) input.disabled = true;
   try {
-    if (next === 0) {
+    if (qty === 0) {
       const { error } = await sb.from('order_items').delete().eq('id', itemId);
       if (error) throw error;
       rowEl.remove();
-    } else {
-      const { error } = await sb.from('order_items').update({ qty: next }).eq('id', itemId);
-      if (error) throw error;
-      span.textContent = next;
+      toast('הפריט הוסר מההזמנה');
+      return;
     }
-  } catch (err) { toast(friendlyError(err), true); }
+    const { error } = await sb.from('order_items').update({ qty }).eq('id', itemId);
+    if (error) throw error;
+    if (input) { input.value = qty; input.dataset.prev = qty; }
+  } catch (err) {
+    if (input) input.value = prev;          // לא משאירים על המסך ערך שלא נשמר
+    toast(friendlyError(err), true);
+  } finally {
+    if (input) input.disabled = false;
+  }
+}
+
+function currentItemQty(rowEl) {
+  const input = rowEl.querySelector('.oi-qty-input');
+  return parseInt(input?.dataset.prev ?? input?.value, 10) || 0;
+}
+
+async function changeItemQty(itemId, delta, rowEl) {
+  await setItemQty(itemId, currentItemQty(rowEl) + delta, rowEl);
+}
+
+// הזנה ידנית — 0 או ריק מתפרשים כהסרה, ולכן מאשרים קודם
+async function typeItemQty(itemId, rowEl, input) {
+  const prev = parseInt(input.dataset.prev, 10) || 0;
+  const raw = input.value.trim();
+  const qty = parseInt(raw, 10);
+
+  if (raw === '' || isNaN(qty) || qty < 0) { input.value = prev; return; }
+  if (qty === 0) {
+    if (!confirm('כמות 0 תסיר את הפריט מההזמנה. להמשיך?')) { input.value = prev; return; }
+  }
+  await setItemQty(itemId, qty, rowEl);
 }
 
 async function removeItem(itemId, rowEl) {
@@ -848,6 +883,28 @@ export function initAdmin() {
       if (act === 'inc') return changeItemQty(itemId, 1, row);
       if (act === 'dec') return changeItemQty(itemId, -1, row);
       if (act === 'rm') return removeItem(itemId, row);
+    });
+
+    // הזנת כמות ידנית
+    on(listId, 'change', (e) => {
+      if (e.target.dataset.act !== 'qty') return;
+      const row = e.target.closest('[data-item]'); if (!row) return;
+      typeItemQty(+row.dataset.item, row, e.target);
+    });
+
+    // Enter מאשר, Esc מבטל
+    on(listId, 'keydown', (e) => {
+      if (e.target.dataset.act !== 'qty') return;
+      if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+      if (e.key === 'Escape') {
+        e.target.value = e.target.dataset.prev || '';
+        e.target.blur();
+      }
+    });
+
+    // בחירת כל הטקסט בלחיצה — מחליפים ערך במקום לערוך תו־תו
+    on(listId, 'focusin', (e) => {
+      if (e.target.dataset.act === 'qty') e.target.select();
     });
   });
 }
