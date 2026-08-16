@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <meta name="theme-color" content="#1c1c2e">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=20260816-order-tabs">
 </head>
 <body>
 
@@ -147,7 +147,6 @@
   <div class="screen" id="adminScreen">
     <div class="admin-tabs">
       <button class="admin-tab active" data-pane="orders">הזמנות</button>
-      <button class="admin-tab" data-pane="archive">ארכיון</button>
       <button class="admin-tab" data-pane="inventory">מלאי</button>
       <button class="admin-tab" data-pane="users">משתמשים</button>
       <button class="admin-tab" data-pane="notify">התראות</button>
@@ -155,18 +154,15 @@
 
     <div class="admin-pane active" id="ordersPane">
       <div class="admin-toolbar">
-        <h3>הזמנות ממתינות</h3>
+        <h3>הזמנות</h3>
         <button class="icon-btn" id="refreshOrders">↻ רענן</button>
       </div>
-      <div id="ordersList"></div>
-    </div>
-
-    <div class="admin-pane" id="archivePane">
-      <div class="admin-toolbar">
-        <h3>ארכיון הזמנות</h3>
-        <button class="icon-btn" id="refreshArchive">↻ רענן</button>
+      <div class="order-stage-tabs" id="orderStageTabs">
+        <button class="active" data-status="pending">ממתינות לאישור <b id="pendingCount">0</b></button>
+        <button data-status="ready">ממתינות לאיסוף <b id="readyCount">0</b></button>
+        <button data-status="collected">ארכיון <b id="collectedCount">0</b></button>
       </div>
-      <div id="archiveList"></div>
+      <div id="ordersList"></div>
     </div>
 
     <div class="admin-pane" id="inventoryPane">
@@ -175,9 +171,21 @@
         <div class="admin-toolbar">
           <h3>מלאי</h3>
           <div class="toolbar-btns">
+            <button class="icon-btn" style="background:var(--accent2)" id="newWhToggle">➕ מחסן</button>
             <button class="icon-btn" style="background:#1d7a4c" id="exportBtn">⬇ אקסל</button>
             <button class="icon-btn" id="refreshInv">↻ רענן</button>
           </div>
+        </div>
+
+        <div class="receive-panel" id="newWhPanel" style="display:none">
+          <div class="section-title">הוספת מחסן</div>
+          <div class="rc-grid warehouse-create-grid">
+            <input type="text" id="newWhLabel" class="field" placeholder="שם המחסן *" maxlength="60">
+            <input type="text" id="newWhIcon" class="field" placeholder="סמל (לדוגמה 📦)" maxlength="8">
+            <input type="text" id="newWhSub" class="field" placeholder="תיאור קצר (לא חובה)" maxlength="100">
+          </div>
+          <button class="btn-block solid" id="newWhSubmit">הוסף מחסן</button>
+          <div class="rc-hint">המחסן יופיע מיד למזמינים ויתפקד כמו המחסנים הקיימים.</div>
         </div>
 
         <!-- נבנה דינמית מ-WAREHOUSES ב-lib.js -->
@@ -298,6 +306,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script type="module" src="app.js"></script>
+<script type="module" src="app.js?v=20260816-order-tabs"></script>
 </body>
 </html>

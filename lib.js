@@ -14,8 +14,8 @@ export const sb = IS_CONFIGURED
   : null;
 
 // ── מחסנים ──
-// מקור אמת יחיד. הוספת מחסן = רשומה כאן + הרחבת אילוץ ה-CHECK במסד.
-// theme קובע את ערכת הצבעים (ראה body[data-wh] ב-styles.css).
+// ערכי ברירת מחדל מאפשרים למסך לעלות גם לפני migration_07.
+// אחרי התחברות הרשימה מתעדכנת מטבלת warehouses ב-Supabase.
 export const WAREHOUSES = {
   main:     { label: 'מחסן דת',   icon: '📦', sub: 'הזמנת ציוד דת', noun: 'מוצרים', sheet: 'מלאי' },
   zuk:      { label: 'ציוד זו"ק', icon: '🪖', sub: 'מחסן זוק',      noun: 'ציוד',   sheet: 'מחסן זוק' },
@@ -28,6 +28,36 @@ export const WH_LABEL = Object.fromEntries(
 );
 export const emptyByWarehouse = () =>
   Object.fromEntries(WH_KEYS.map((k) => [k, []]));
+
+export async function loadWarehouses() {
+  if (!sb) return WAREHOUSES;
+  const { data, error } = await sb.from('warehouses')
+    .select('id, label, icon, sub, noun, active, sort_order, created_at')
+    .eq('active', true)
+    .order('sort_order')
+    .order('created_at');
+
+  // תאימות לאחור עד להרצת migration_07.
+  if (error) {
+    if (/does not exist|schema cache|could not find/i.test(String(error.message))) return WAREHOUSES;
+    throw error;
+  }
+  if (!data?.length) return WAREHOUSES;
+
+  Object.keys(WAREHOUSES).forEach(k => delete WAREHOUSES[k]);
+  data.forEach(w => {
+    WAREHOUSES[w.id] = {
+      label: w.label,
+      icon: w.icon || '📦',
+      sub: w.sub || 'הזמנת ציוד',
+      noun: w.noun || 'מוצרים',
+    };
+  });
+  WH_KEYS.splice(0, WH_KEYS.length, ...Object.keys(WAREHOUSES));
+  Object.keys(WH_LABEL).forEach(k => delete WH_LABEL[k]);
+  WH_KEYS.forEach(k => { WH_LABEL[k] = WAREHOUSES[k].label; });
+  return WAREHOUSES;
+}
 
 export const state = {
   user: null,

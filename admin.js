@@ -2,12 +2,12 @@
 // ממשק ניהול: הזמנות, ארכיון, מלאי, משתמשים
 // ============================================================
 import {
-  sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state,
+  sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state, loadWarehouses,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
   caps, fetchInventory, isMissingColumn,
-} from './lib.js';
+} from './lib.js?v=20260816-order-tabs';
 
-const INV_COLS = 'id, warehouse, name, qty, category, exposed';
+const INV_COLS = 'id, warehouse, name, qty, category, exposed, max_order_qty';
 
 let inventory = emptyByWarehouse();
 let invEditMode = false;
@@ -22,18 +22,19 @@ export function openAdmin() {
 function setTab(pane) {
   document.querySelectorAll('.admin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.pane === pane));
-  ['orders', 'archive', 'inventory', 'users', 'notify'].forEach(p =>
+  ['orders', 'inventory', 'users', 'notify'].forEach(p =>
     $(p + 'Pane').classList.toggle('active', p === pane));
 
   if (pane === 'orders') loadOrders();
-  if (pane === 'archive') loadArchive();
   if (pane === 'inventory') { showInvPicker(); loadInventory(); }
   if (pane === 'users') loadUsers();
   if (pane === 'notify') loadNotify();
 }
 
 // ── הזמנות ──────────────────────────────────────────────────
-const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, created_at, approved_at, order_items(id, name, qty)';
+const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty)';
+let allOrders = [];
+let orderStage = 'pending';
 
 async function fetchOrders(statuses) {
   const { data, error } = await sb.from('orders')
@@ -48,43 +49,50 @@ async function loadOrders() {
   const el = $('ordersList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>';
   try {
-    const orders = await fetchOrders(['pending']);
-    el.innerHTML = orders.length
-      ? orders.map(o => orderCard(o, false)).join('')
-      : '<div class="admin-empty">אין הזמנות ממתינות 📭</div>';
+    allOrders = await fetchOrders(['pending', 'ready', 'collected']);
+    renderOrderStage();
   } catch (err) {
     el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
   }
 }
 
-async function loadArchive() {
-  const el = $('archiveList');
-  el.innerHTML = '<div class="loading"><div class="spinner"></div><div>טוען ארכיון...</div></div>';
-  try {
-    const orders = await fetchOrders(['ready', 'collected']);
-    el.innerHTML = orders.length
-      ? orders.map(o => orderCard(o, true)).join('')
-      : '<div class="admin-empty">הארכיון ריק</div>';
-  } catch (err) {
-    el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
-  }
+function renderOrderStage() {
+  const counts = {
+    pending: allOrders.filter(o => o.status === 'pending').length,
+    ready: allOrders.filter(o => o.status === 'ready').length,
+    collected: allOrders.filter(o => o.status === 'collected').length,
+  };
+  $('pendingCount').textContent = counts.pending;
+  $('readyCount').textContent = counts.ready;
+  $('collectedCount').textContent = counts.collected;
+  document.querySelectorAll('#orderStageTabs [data-status]').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.status === orderStage));
+
+  const orders = allOrders.filter(o => o.status === orderStage);
+  const empty = orderStage === 'pending' ? 'אין הזמנות ממתינות 📭'
+    : orderStage === 'ready' ? 'אין הזמנות שממתינות לאיסוף'
+    : 'הארכיון ריק';
+  $('ordersList').innerHTML = orders.length
+    ? orders.map(orderCard).join('')
+    : `<div class="admin-empty">${empty}</div>`;
 }
 
-function orderCard(o, archived) {
+function orderCard(o) {
   const isReady = o.status === 'ready';
   const isCollected = o.status === 'collected';
+  const editable = o.status === 'pending';
   const stCls = isCollected ? 'collected' : (isReady ? 'approved' : 'pending');
   const stLabel = isCollected ? 'נאספה' : (isReady ? 'מוכנה לאיסוף' : 'ממתינה לאישור');
 
   const items = (o.order_items || []).map(it => `
     <div class="order-item-row" data-item="${it.id}">
       <span class="order-item-name">${esc(it.name)}</span>
-      ${archived ? `<span class="oi-qty">×${it.qty}</span>` : `
+      ${editable ? `
         <button class="oi-qty-btn" data-act="dec">−</button>
         <input type="number" class="oi-qty-input" value="${it.qty}" min="0"
                data-act="qty" data-prev="${it.qty}" inputmode="numeric" aria-label="כמות">
         <button class="oi-qty-btn" data-act="inc">+</button>
-        <button class="oi-qty-btn" data-act="rm" title="הסר">×</button>`}
+        <button class="oi-qty-btn" data-act="rm" title="הסר">×</button>` : `<span class="oi-qty">×${it.qty}</span>`}
     </div>`).join('');
 
   const cert = o.cert_path
@@ -92,13 +100,13 @@ function orderCard(o, archived) {
          <button class="cert-dl" data-act="cert" style="margin-right:auto">⬇ הורד</button></div>`
     : `<div class="cert-row none">📋 תעודת ספק תוגש באיסוף</div>`;
 
-  const actions = archived
+  const actions = editable
     ? `<div class="order-actions">
-         ${isReady ? `<button class="btn-approve" data-act="collected" style="background:#546e7a">סמן כנאספה</button>` : ''}
+         <button class="btn-approve" data-act="approve">סמן כמוכנה לאיסוף + הורד מלאי</button>
          <button class="btn-delete" data-act="del">🗑️</button>
        </div>`
     : `<div class="order-actions">
-         <button class="btn-approve" data-act="approve">אשר הזמנה + הורד מלאי</button>
+         ${isReady ? `<button class="btn-approve" data-act="collected" style="background:#546e7a">סמן כנאספה</button>` : ''}
          <button class="btn-delete" data-act="del">🗑️</button>
        </div>`;
 
@@ -114,13 +122,21 @@ function orderCard(o, archived) {
     </div>
     <div class="order-items">${items}</div>
     ${cert}
+    <div class="order-note-box">
+      <label for="note-${o.id}">הערת מנהל</label>
+      <div class="order-note-line">
+        <textarea id="note-${o.id}" data-act="note" maxlength="1000" rows="2"
+                  placeholder="הוסף הערה להזמנה...">${esc(o.admin_note || '')}</textarea>
+        <button data-act="save-note">שמור</button>
+      </div>
+    </div>
     ${actions}
   </div>`;
 }
 
 // ── פעולות על הזמנה ─────────────────────────────────────────
 async function approveOrder(orderId, cardEl) {
-  if (!confirm('לאשר את ההזמנה, להוריד מהמלאי ולשלוח מייל למזמין?')) return;
+  if (!confirm('לסמן את ההזמנה כמוכנה לאיסוף, להוריד מהמלאי ולשלוח מייל למזמין?')) return;
   const btn = cardEl.querySelector('[data-act="approve"]');
   if (btn) { btn.disabled = true; btn.textContent = 'מאשר...'; }
   try {
@@ -137,7 +153,7 @@ async function approveOrder(orderId, cardEl) {
     loadOrders();
   } catch (err) {
     toast(friendlyError(err), true);
-    if (btn) { btn.disabled = false; btn.textContent = 'אשר הזמנה + הורד מלאי'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'סמן כמוכנה לאיסוף + הורד מלאי'; }
   }
 }
 
@@ -179,7 +195,7 @@ async function deleteOrder(orderId) {
     const { error } = await sb.from('orders').delete().eq('id', orderId);
     if (error) throw error;
     toast('ההזמנה נמחקה');
-    loadOrders(); loadArchive();
+    loadOrders();
   } catch (err) { toast(friendlyError(err), true); }
 }
 
@@ -188,8 +204,24 @@ async function markCollected(orderId) {
     const { error } = await sb.from('orders').update({ status: 'collected' }).eq('id', orderId);
     if (error) throw error;
     toast('סומן כנאספה ✓');
-    loadArchive();
+    loadOrders();
   } catch (err) { toast(friendlyError(err), true); }
+}
+
+async function saveOrderNote(orderId, cardEl) {
+  const input = cardEl.querySelector('[data-act="note"]');
+  const btn = cardEl.querySelector('[data-act="save-note"]');
+  const admin_note = input.value.trim() || null;
+  btn.disabled = true; btn.textContent = 'שומר...';
+  try {
+    const { error } = await sb.from('orders').update({ admin_note }).eq('id', orderId);
+    if (error) throw error;
+    toast('ההערה נשמרה ✓');
+  } catch (err) {
+    toast(friendlyError(err), true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'שמור';
+  }
 }
 
 // שמירת כמות פריט בהזמנה. qty=0 מסיר את הפריט (order_items מחייב qty > 0).
@@ -280,6 +312,34 @@ async function loadInventory() {
   }
 }
 
+async function createWarehouse() {
+  const btn = $('newWhSubmit');
+  const label = $('newWhLabel').value.trim();
+  const icon = $('newWhIcon').value.trim() || '📦';
+  const sub = $('newWhSub').value.trim() || 'הזמנת ציוד';
+  if (!label) { toast('יש להזין שם למחסן', true); return; }
+
+  btn.disabled = true; btn.textContent = 'מוסיף...';
+  try {
+    const id = `custom-${Date.now().toString(36)}`;
+    const { error } = await sb.from('warehouses').insert({
+      id, label, icon, sub, noun: 'מוצרים', sort_order: Math.floor(Date.now() / 1000),
+    });
+    if (error) throw error;
+    await loadWarehouses();
+    inventory = emptyByWarehouse();
+    $('newWhLabel').value = ''; $('newWhIcon').value = ''; $('newWhSub').value = '';
+    $('newWhPanel').style.display = 'none';
+    renderPicker();
+    window.dispatchEvent(new CustomEvent('warehouses-changed'));
+    toast(`המחסן "${label}" נוסף ✓`);
+  } catch (err) {
+    toast(friendlyError(err), true);
+  } finally {
+    btn.disabled = false; btn.textContent = 'הוסף מחסן';
+  }
+}
+
 // כרטיסי בחירת מחסן + סיכום לכל אחד — נבנים מ-WAREHOUSES
 function renderPicker() {
   $('invPickerGrid').innerHTML = WH_KEYS.map((wh) => {
@@ -355,6 +415,10 @@ function renderInventory() {
         </div>
         <div class="inv-edit-side">
           <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
+          <label class="inv-limit">מקס׳ להזמנה
+            <input type="number" class="inv-limit-input" min="1" value="${p.max_order_qty || ''}"
+                   placeholder="ללא" data-act="max" aria-label="מקסימום להזמנה">
+          </label>
           <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
         </div>
       </div>`;
@@ -771,11 +835,23 @@ export function initAdmin() {
     t.addEventListener('click', () => setTab(t.dataset.pane)));
 
   on('refreshOrders', 'click', loadOrders);
-  on('refreshArchive', 'click', loadArchive);
+  on('orderStageTabs', 'click', (e) => {
+    const btn = e.target.closest('[data-status]');
+    if (!btn) return;
+    orderStage = btn.dataset.status;
+    renderOrderStage();
+  });
   on('refreshInv', 'click', loadInventory);
   on('refreshUsers', 'click', loadUsers);
   on('exportBtn', 'click', exportInventory);
   on('rcSubmit', 'click', receiveGoods);
+  on('newWhSubmit', 'click', createWarehouse);
+  on('newWhToggle', 'click', () => {
+    const p = $('newWhPanel');
+    const open = p.style.display === 'none';
+    p.style.display = open ? 'block' : 'none';
+    if (open) $('newWhLabel').focus();
+  });
 
   on('receiveToggle', 'click', () => {
     const p = $('receivePanel');
@@ -823,6 +899,11 @@ export function initAdmin() {
       const qty = Math.max(0, parseInt(e.target.value, 10) || 0);
       e.target.value = qty;
       updateInvField(id, { qty });
+    } else if (e.target.dataset.act === 'max') {
+      const raw = e.target.value.trim();
+      const max_order_qty = raw ? Math.max(1, parseInt(raw, 10) || 1) : null;
+      e.target.value = max_order_qty || '';
+      updateInvField(id, { max_order_qty });
     } else if (e.target.dataset.act === 'exp') {
       updateInvField(id, { exposed: e.target.checked });
     } else if (e.target.dataset.act === 'name') {
@@ -864,8 +945,8 @@ export function initAdmin() {
     removeNotify(+row.dataset.notify, row.querySelector('.user-email').textContent);
   });
 
-  // פעולות על הזמנות (הזמנות + ארכיון)
-  ['ordersList', 'archiveList'].forEach(listId => {
+  // פעולות על הזמנות בכל שלושת השלבים
+  ['ordersList'].forEach(listId => {
     on(listId, 'click', (e) => {
       const btn = e.target.closest('[data-act]'); if (!btn) return;
       const card = btn.closest('[data-order]'); if (!card) return;
@@ -876,6 +957,7 @@ export function initAdmin() {
       if (act === 'del') return deleteOrder(orderId);
       if (act === 'collected') return markCollected(orderId);
       if (act === 'cert') return downloadCert(orderId);
+      if (act === 'save-note') return saveOrderNote(orderId, card);
 
       const row = btn.closest('[data-item]');
       if (!row) return;

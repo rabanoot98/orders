@@ -2,11 +2,11 @@
 // אפליקציה ראשית: כניסה, פרופיל, הזמנות
 // ============================================================
 import {
-  sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state,
+  sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state, loadWarehouses,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
   fetchInventory,
-} from './lib.js';
-import { openAdmin, initAdmin, invokeFn } from './admin.js';
+} from './lib.js?v=20260816-order-tabs';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260816-order-tabs';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -62,6 +62,8 @@ function paintAccountUI() {
 
 async function onSignedIn() {
   await loadProfile();
+  await loadWarehouses();
+  renderWarehouseCards();
   paintAccountUI();
   afterAuthScreen();
 }
@@ -212,7 +214,7 @@ async function openWarehouse(wh) {
 
   try {
     const data = await fetchInventory(() => sb.from('inventory')
-      .select('name, qty, category')
+      .select('name, qty, category, max_order_qty')
       .eq('warehouse', wh).eq('exposed', true).gt('qty', 0));
 
     state.products = data;
@@ -245,16 +247,18 @@ function renderProducts() {
 
   el.innerHTML = list.map(p => {
     const qty = state.cart[p.name]?.qty || 0;
+    const max = Math.min(p.qty, p.max_order_qty || p.qty);
     return `<div class="product-card ${qty > 0 ? 'in-cart' : ''}" data-name="${esc(p.name)}">
       <div>
         <div class="product-name">${esc(p.name)}</div>
         ${p.category ? `<div class="product-cat">${esc(p.category)}</div>` : ''}
-        ${qty >= p.qty ? '<div class="product-stock">הגעת לכמות המרבית</div>' : ''}
+        ${p.max_order_qty ? `<div class="product-stock">עד ${max} יחידות בהזמנה</div>` : ''}
+        ${qty >= max ? '<div class="product-stock">הגעת לכמות המרבית</div>' : ''}
       </div>
       <div class="qty-control">
         <button class="qty-btn minus" data-act="dec" ${qty === 0 ? 'disabled' : ''}>−</button>
         <input type="number" class="qty-display" value="${qty}" min="0" data-act="set">
-        <button class="qty-btn plus" data-act="inc" ${qty >= p.qty ? 'disabled' : ''}>+</button>
+        <button class="qty-btn plus" data-act="inc" ${qty >= max ? 'disabled' : ''}>+</button>
       </div>
     </div>`;
   }).join('');
@@ -263,9 +267,10 @@ function renderProducts() {
 function setQty(name, qty) {
   const prod = state.products.find(p => p.name === name);
   if (!prod) return;
-  qty = Math.max(0, Math.min(prod.qty, parseInt(qty, 10) || 0));
+  const max = Math.min(prod.qty, prod.max_order_qty || prod.qty);
+  qty = Math.max(0, Math.min(max, parseInt(qty, 10) || 0));
   if (qty === 0) delete state.cart[name];
-  else state.cart[name] = { qty, max: prod.qty };
+  else state.cart[name] = { qty, max };
   updateCartBadge();
   renderProducts();
 }
@@ -501,6 +506,7 @@ function wire() {
     const card = e.target.closest('.warehouse-card');
     if (card) openWarehouse(card.dataset.wh);
   });
+  window.addEventListener('warehouses-changed', renderWarehouseCards);
 
   // מוצרים
   on('prodSearch', 'input', renderProducts);
@@ -547,6 +553,7 @@ function wire() {
 (async function init() {
   if (!IS_CONFIGURED) { showScreen('configScreen'); return; }
 
+  await loadWarehouses();
   renderWarehouseCards();
   wire();
   initAdmin();
