@@ -5,8 +5,8 @@ import {
   sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state, loadWarehouses,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
   fetchInventory,
-} from './lib.js?v=20260816-order-tabs';
-import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260816-order-tabs';
+} from './lib.js?v=20260816-category-tools';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260816-category-tools';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -16,7 +16,7 @@ export function goHome() {
 
 // כרטיסי המחסנים במסך הבית — נבנים מ-WAREHOUSES
 function renderWarehouseCards() {
-  $('warehouseGrid').innerHTML = WH_KEYS.map((wh) => {
+  $('warehouseGrid').innerHTML = WH_KEYS.filter(wh => WAREHOUSES[wh].active !== false).map((wh) => {
     const c = WAREHOUSES[wh];
     return `<div class="warehouse-card ${wh}" data-wh="${wh}">
       <div class="wh-icon">${c.icon}</div>

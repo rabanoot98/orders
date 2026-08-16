@@ -5,7 +5,7 @@ import {
   sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state, loadWarehouses,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
   caps, fetchInventory, isMissingColumn,
-} from './lib.js?v=20260816-order-tabs';
+} from './lib.js?v=20260816-category-tools';
 
 const INV_COLS = 'id, warehouse, name, qty, category, exposed, max_order_qty';
 
@@ -301,11 +301,15 @@ async function loadInventory() {
   const el = $('inventoryList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
+    await loadWarehouses(true);
     const data = await fetchInventory(() => sb.from('inventory').select(INV_COLS));
     inventory = emptyByWarehouse();
     data.forEach(p => inventory[p.warehouse]?.push(p));
     renderPicker();
-    if ($('invDetail').style.display !== 'none') renderInventory();
+    if ($('invDetail').style.display !== 'none') {
+      renderInvCategoryFilter();
+      renderInventory();
+    }
   } catch (err) {
     el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
     toast(friendlyError(err), true);
@@ -326,7 +330,7 @@ async function createWarehouse() {
       id, label, icon, sub, noun: 'מוצרים', sort_order: Math.floor(Date.now() / 1000),
     });
     if (error) throw error;
-    await loadWarehouses();
+    await loadWarehouses(true);
     inventory = emptyByWarehouse();
     $('newWhLabel').value = ''; $('newWhIcon').value = ''; $('newWhSub').value = '';
     $('newWhPanel').style.display = 'none';
@@ -350,7 +354,11 @@ function renderPicker() {
     const bits = [];
     if (low) bits.push(`<span class="low">${low} במלאי נמוך</span>`);
     if (hidden) bits.push(`${hidden} מוסתרים`);
-    return `<div class="inv-pick-card ${wh}" data-wh="${wh}">
+    return `<div class="inv-pick-card ${wh} ${c.active === false ? 'warehouse-hidden' : ''}" data-wh="${wh}">
+      <button class="inv-wh-visibility" data-act="toggle-wh" type="button"
+              aria-pressed="${c.active !== false}" title="${c.active === false ? 'הצג למשתמשים' : 'הסתר מהמשתמשים'}">
+        ${c.active === false ? '🙈 מוסתר' : '👁 מוצג'}
+      </button>
       <div class="inv-pick-icon">${c.icon}</div>
       <div class="inv-pick-title">${esc(c.label)}</div>
       <div class="inv-pick-count">${arr.length} פריטים</div>
@@ -358,6 +366,27 @@ function renderPicker() {
       <div class="inv-pick-arrow">‹</div>
     </div>`;
   }).join('');
+}
+
+async function toggleWarehouse(wh) {
+  const cfg = WAREHOUSES[wh];
+  if (!cfg) return;
+  const nextActive = cfg.active === false;
+  if (!nextActive) {
+    const activeCount = WH_KEYS.filter(k => WAREHOUSES[k].active !== false).length;
+    if (activeCount <= 1) { toast('לא ניתן להסתיר את המחסן הפעיל האחרון', true); return; }
+  }
+
+  try {
+    const { error } = await sb.from('warehouses').update({ active: nextActive }).eq('id', wh);
+    if (error) throw error;
+    cfg.active = nextActive;
+    renderPicker();
+    window.dispatchEvent(new CustomEvent('warehouses-changed'));
+    toast(nextActive ? 'המחסן מוצג למשתמשים ✓' : 'המחסן הוסתר מהמשתמשים');
+  } catch (err) {
+    toast(friendlyError(err), true);
+  }
 }
 
 // מעבר בין מסך הבחירה למסך המחסן
@@ -372,21 +401,75 @@ function openInvWarehouse(wh) {
   invWarehouse = wh;
   $('invPicker').style.display = 'none';
   $('invDetail').style.display = 'block';
-  $('invDetailTitle').textContent = WH_LABEL[wh];
+  renderInvHeader();
   $('rcWhLabel').textContent = WH_LABEL[wh];
   $('invSearch').value = '';
+  renderInvCategoryFilter(true);
   $('receivePanel').style.display = 'none';
   renderInventory();
   window.scrollTo(0, 0);
 }
 
+function currentWarehouseCategories() {
+  return [...new Set((inventory[invWarehouse] || [])
+    .map(p => (p.category || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'he'));
+}
+
+function renderInvCategoryFilter(reset = false) {
+  const select = $('invCategoryFilter');
+  const previous = reset ? '' : select.value;
+  const categories = currentWarehouseCategories();
+  select.innerHTML = '<option value="">כל הקטגוריות</option>' + categories
+    .map(category => `<option value="${esc(category)}">${esc(category)}</option>`).join('');
+  select.value = categories.includes(previous) ? previous : '';
+}
+
+function renderInvHeader() {
+  const title = $('invDetailTitle');
+  if (!invEditMode) {
+    title.textContent = WH_LABEL[invWarehouse] || invWarehouse;
+    return;
+  }
+  title.innerHTML = `<input type="text" class="warehouse-name-input" id="invWhNameInput"
+    value="${esc(WH_LABEL[invWarehouse] || invWarehouse)}" maxlength="60"
+    data-prev="${esc(WH_LABEL[invWarehouse] || invWarehouse)}" aria-label="שם המחסן">`;
+}
+
+async function renameWarehouse(input) {
+  const oldLabel = WH_LABEL[invWarehouse] || invWarehouse;
+  const label = input.value.trim();
+  if (!label) { input.value = oldLabel; toast('שם המחסן לא יכול להיות ריק', true); return; }
+  if (label === oldLabel) return;
+
+  input.disabled = true;
+  try {
+    const { error } = await sb.from('warehouses').update({ label }).eq('id', invWarehouse);
+    if (error) throw error;
+    WAREHOUSES[invWarehouse].label = label;
+    WH_LABEL[invWarehouse] = label;
+    $('rcWhLabel').textContent = label;
+    input.value = label; input.dataset.prev = label;
+    renderPicker();
+    window.dispatchEvent(new CustomEvent('warehouses-changed'));
+    toast('שם המחסן עודכן ✓');
+  } catch (err) {
+    input.value = oldLabel;
+    toast(friendlyError(err), true);
+  } finally {
+    input.disabled = false;
+  }
+}
+
 function renderInventory() {
   const search = ($('invSearch')?.value || '').trim().toLowerCase();
+  const category = $('invCategoryFilter')?.value || '';
   const all = inventory[invWarehouse] || [];
-  const arr = search
-    ? all.filter(p => p.name.toLowerCase().includes(search) ||
-                      (p.category || '').toLowerCase().includes(search))
-    : all;
+  const arr = all.filter(p => {
+    const matchesSearch = !search || p.name.toLowerCase().includes(search) ||
+      (p.category || '').toLowerCase().includes(search);
+    return matchesSearch && (!category || p.category === category);
+  });
 
   if (!all.length) {
     $('inventoryList').innerHTML = '<div class="admin-empty">אין פריטים במחסן זה</div>';
@@ -402,7 +485,7 @@ function renderInventory() {
     if (invEditMode) {
       // סידור מוסתר בזמן חיפוש (הסדר מתייחס לרשימה המלאה)
       // וגם אם migration_03 עוד לא רצה
-      const sortable = !search && caps.sortOrder;
+      const sortable = !search && !category && caps.sortOrder;
       const moves = !sortable ? '' : `
         <button class="inv-drag" title="גרור לשינוי מיקום" aria-label="גרור לשינוי מיקום">⣿</button>
         <button class="inv-top" data-act="top" title="העבר לראש הרשימה"
@@ -423,18 +506,78 @@ function renderInventory() {
         </div>
       </div>`;
     }
-    return `<div class="inv-row">
+    return `<div class="inv-row clickable" data-inv="${p.id}" role="button" tabindex="0" aria-label="עריכת ${esc(p.name)}">
       <span class="inv-name">${esc(p.name)}${p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>'}</span>
       <span class="inv-stock ${low ? 'low' : ''}">${p.qty}</span>
     </div>`;
   }).join('');
 
-  const shown = search ? `${arr.length} מתוך ${all.length}` : `${all.length}`;
+  const shown = (search || category) ? `${arr.length} מתוך ${all.length}` : `${all.length}`;
   const hidden = all.filter(p => !p.exposed).length;
   const summary = `${shown} פריטים${hidden ? ` · ${hidden} מוסתרים` : ''}`;
 
   $('inventoryList').innerHTML =
     `<div class="section-title" style="margin-top:4px">${esc(WH_LABEL[invWarehouse])} — ${summary}</div>${rows}`;
+}
+
+function inventoryItemById(id) {
+  return WH_KEYS.flatMap(k => inventory[k] || []).find(p => p.id === id);
+}
+
+function openInventoryModal(id) {
+  const item = inventoryItemById(id);
+  if (!item) return;
+  $('invModalId').value = item.id;
+  $('invModalName').value = item.name || '';
+  $('invCategoryOptions').innerHTML = currentWarehouseCategories()
+    .map(category => `<option value="${esc(category)}"></option>`).join('');
+  $('invModalCategory').value = item.category || '';
+  $('invModalQty').value = item.qty ?? 0;
+  $('invModalMax').value = item.max_order_qty || '';
+  $('invModalExposed').checked = !!item.exposed;
+  showError('invModalError', '');
+  $('invItemModal').classList.add('open');
+  $('invModalName').focus();
+}
+
+function closeInventoryModal() {
+  $('invItemModal').classList.remove('open');
+}
+
+async function saveInventoryModal() {
+  const id = +$('invModalId').value;
+  const item = inventoryItemById(id);
+  if (!item) return closeInventoryModal();
+  const name = $('invModalName').value.trim();
+  const category = $('invModalCategory').value.trim() || 'כללי';
+  const qty = Math.max(0, parseInt($('invModalQty').value, 10) || 0);
+  const rawMax = $('invModalMax').value.trim();
+  const max_order_qty = rawMax ? Math.max(1, parseInt(rawMax, 10) || 1) : null;
+  const exposed = $('invModalExposed').checked;
+  if (!name) { showError('invModalError', 'שם המוצר לא יכול להיות ריק'); return; }
+
+  const btn = $('invModalSave');
+  btn.disabled = true; btn.textContent = 'שומר...';
+  try {
+    if (name !== item.name) {
+      const { data, error } = await sb.rpc('rename_inventory_item', { p_id: id, p_name: name });
+      if (error) throw error;
+      item.name = data.name;
+    }
+    const patch = { category, qty, max_order_qty, exposed };
+    const { error } = await sb.from('inventory').update(patch).eq('id', id);
+    if (error) throw error;
+    Object.assign(item, patch);
+    renderInvCategoryFilter();
+    closeInventoryModal();
+    renderInventory();
+    renderPicker();
+    toast('פרטי המוצר עודכנו ✓');
+  } catch (err) {
+    showError('invModalError', friendlyError(err));
+  } finally {
+    btn.disabled = false; btn.textContent = 'שמור שינויים';
+  }
 }
 
 // ── סידור מחדש ──────────────────────────────────────────────
@@ -862,6 +1005,8 @@ export function initAdmin() {
 
   // כניסה למחסן / חזרה לבחירה — האזנה על המכל, הכרטיסים דינמיים
   on('invPickerGrid', 'click', (e) => {
+    const toggle = e.target.closest('[data-act="toggle-wh"]');
+    if (toggle) return toggleWarehouse(toggle.closest('.inv-pick-card').dataset.wh);
     const card = e.target.closest('.inv-pick-card');
     if (card) openInvWarehouse(card.dataset.wh);
   });
@@ -869,20 +1014,49 @@ export function initAdmin() {
 
   // חיפוש במלאי
   on('invSearch', 'input', renderInventory);
+  on('invCategoryFilter', 'change', renderInventory);
 
   on('editInvBtn', 'click', () => {
     invEditMode = !invEditMode;
     const b = $('editInvBtn');
     b.classList.toggle('on', invEditMode);
     b.textContent = invEditMode ? '✓ סיום' : '✎ עריכה';
+    renderInvHeader();
     renderInventory();
+  });
+
+  on('invDetailTitle', 'change', (e) => {
+    if (e.target.id === 'invWhNameInput') renameWarehouse(e.target);
+  });
+  on('invDetailTitle', 'keydown', (e) => {
+    if (e.target.id !== 'invWhNameInput') return;
+    if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
+    if (e.key === 'Escape') { e.target.value = e.target.dataset.prev; e.target.blur(); }
   });
 
   // מלאי — העברה לראש הרשימה
   on('inventoryList', 'click', (e) => {
     const btn = e.target.closest('[data-act="top"]');
-    if (!btn || btn.disabled) return;
-    moveToTop(+btn.closest('[data-inv]').dataset.inv);
+    if (btn) {
+      if (!btn.disabled) moveToTop(+btn.closest('[data-inv]').dataset.inv);
+      return;
+    }
+    const row = e.target.closest('.inv-row[data-inv]');
+    if (row && !invEditMode) openInventoryModal(+row.dataset.inv);
+  });
+  on('inventoryList', 'keydown', (e) => {
+    if (!invEditMode && (e.key === 'Enter' || e.key === ' ')) {
+      const row = e.target.closest('.inv-row[data-inv]');
+      if (row) { e.preventDefault(); openInventoryModal(+row.dataset.inv); }
+    }
+  });
+
+  on('invModalSave', 'click', saveInventoryModal);
+  on('invModalCancel', 'click', closeInventoryModal);
+  on('invModalClose', 'click', closeInventoryModal);
+  on('invItemModal', 'click', (e) => { if (e.target === $('invItemModal')) closeInventoryModal(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('invItemModal').classList.contains('open')) closeInventoryModal();
   });
 
   // מלאי — גרירה לשינוי מיקום (pointer events => עכבר ומגע כאחד)

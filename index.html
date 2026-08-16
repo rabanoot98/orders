@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <meta name="theme-color" content="#1c1c2e">
-<link rel="stylesheet" href="styles.css?v=20260816-order-tabs">
+<link rel="stylesheet" href="styles.css?v=20260816-category-tools">
 </head>
 <body>
 
@@ -203,9 +203,14 @@
           </div>
         </div>
 
-        <div class="search-bar" style="margin-bottom:14px">
-          <span>🔍</span>
-          <input type="text" id="invSearch" placeholder="חיפוש פריט במלאי...">
+        <div class="inventory-filter-row">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" id="invSearch" placeholder="חיפוש פריט במלאי...">
+          </div>
+          <select id="invCategoryFilter" class="inventory-category-filter" aria-label="סינון לפי קטגוריה">
+            <option value="">כל הקטגוריות</option>
+          </select>
         </div>
 
       <div class="receive-panel" id="receivePanel" style="display:none">
@@ -303,9 +308,42 @@
   </div>
 </div>
 
+<!-- ══ INVENTORY ITEM EDITOR ══ -->
+<div class="confirm-overlay" id="invItemModal">
+  <div class="inventory-modal-card">
+    <div class="cart-header">
+      <h2>פרטי מוצר</h2>
+      <button class="close-btn" id="invModalClose">✕</button>
+    </div>
+    <input type="hidden" id="invModalId">
+    <label class="modal-field-label">שם המוצר
+      <input type="text" class="field" id="invModalName" maxlength="120">
+    </label>
+    <label class="modal-field-label">קטגוריה
+      <input type="text" class="field" id="invModalCategory" maxlength="100"
+             list="invCategoryOptions" autocomplete="off">
+      <datalist id="invCategoryOptions"></datalist>
+    </label>
+    <div class="inventory-modal-grid">
+      <label class="modal-field-label">כמות במלאי
+        <input type="number" class="field" id="invModalQty" min="0">
+      </label>
+      <label class="modal-field-label">מקס׳ להזמנה
+        <input type="number" class="field" id="invModalMax" min="1" placeholder="ללא הגבלה">
+      </label>
+    </div>
+    <label class="modal-check"><input type="checkbox" id="invModalExposed"> חשוף להזמנות</label>
+    <div class="form-error" id="invModalError"></div>
+    <div class="inventory-modal-actions">
+      <button class="btn-block" id="invModalCancel">ביטול</button>
+      <button class="btn-block solid" id="invModalSave">שמור שינויים</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script type="module" src="app.js?v=20260816-order-tabs"></script>
+<script type="module" src="app.js?v=20260816-category-tools"></script>
 </body>
 </html>

@@ -29,13 +29,12 @@ export const WH_LABEL = Object.fromEntries(
 export const emptyByWarehouse = () =>
   Object.fromEntries(WH_KEYS.map((k) => [k, []]));
 
-export async function loadWarehouses() {
+export async function loadWarehouses(includeInactive = false) {
   if (!sb) return WAREHOUSES;
-  const { data, error } = await sb.from('warehouses')
-    .select('id, label, icon, sub, noun, active, sort_order, created_at')
-    .eq('active', true)
-    .order('sort_order')
-    .order('created_at');
+  let query = sb.from('warehouses')
+    .select('id, label, icon, sub, noun, active, sort_order, created_at');
+  if (!includeInactive) query = query.eq('active', true);
+  const { data, error } = await query.order('sort_order').order('created_at');
 
   // תאימות לאחור עד להרצת migration_07.
   if (error) {
@@ -51,6 +50,7 @@ export async function loadWarehouses() {
       icon: w.icon || '📦',
       sub: w.sub || 'הזמנת ציוד',
       noun: w.noun || 'מוצרים',
+      active: w.active !== false,
     };
   });
   WH_KEYS.splice(0, WH_KEYS.length, ...Object.keys(WAREHOUSES));
