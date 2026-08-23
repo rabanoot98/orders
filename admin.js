@@ -32,7 +32,7 @@ function setTab(pane) {
 }
 
 // ── הזמנות ──────────────────────────────────────────────────
-const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty)';
+const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty, warehouse)';
 let allOrders = [];
 let orderStage = 'pending';
 
@@ -80,7 +80,8 @@ function renderOrderStage() {
 function orderCard(o) {
   const isReady = o.status === 'ready';
   const isCollected = o.status === 'collected';
-  const editable = o.status === 'pending';
+  const isPending = o.status === 'pending';
+  const editable = !isCollected;
   const stCls = isCollected ? 'collected' : (isReady ? 'approved' : 'pending');
   const stLabel = isCollected ? 'נאספה' : (isReady ? 'מוכנה לאיסוף' : 'ממתינה לאישור');
 
@@ -100,14 +101,16 @@ function orderCard(o) {
          <button class="cert-dl" data-act="cert" style="margin-right:auto">⬇ הורד</button></div>`
     : `<div class="cert-row none">📋 תעודת ספק תוגש באיסוף</div>`;
 
-  const actions = editable
+  const actions = isPending
     ? `<div class="order-actions">
+         <button class="btn-add-item" data-act="add-item">＋ הוסף פריט</button>
          <button class="btn-approve" data-act="approve">סמן כמוכנה לאיסוף + הורד מלאי</button>
          <button class="btn-delete" data-act="del">🗑️</button>
        </div>`
     : `<div class="order-actions">
+         ${isReady ? `<button class="btn-add-item" data-act="add-item">＋ הוסף פריט</button>` : ''}
          ${isReady ? `<button class="btn-approve" data-act="collected" style="background:#546e7a">סמן כנאספה</button>` : ''}
-         <button class="btn-delete" data-act="del">🗑️</button>
+         <button class="btn-delete" data-act="del" title="${isReady ? 'בטל הזמנה והחזר מלאי' : 'מחק הזמנה'}">🗑️</button>
        </div>`;
 
   return `<div class="order-card ${isReady || isCollected ? 'approved' : ''}" data-order="${o.id}">
@@ -196,11 +199,16 @@ async function sendReadyEmail(orderId) {
 }
 
 async function deleteOrder(orderId) {
-  if (!confirm('למחוק את ההזמנה לצמיתות?')) return;
+  const order = allOrders.find(o => o.id === orderId);
+  const returnsStock = order?.status === 'ready';
+  const warning = returnsStock
+    ? 'האם לבטל את ההזמנה? כל הפריטים יוחזרו למלאי.'
+    : 'האם למחוק את ההזמנה לצמיתות?';
+  if (!confirm(warning)) return;
   try {
-    const { error } = await sb.from('orders').delete().eq('id', orderId);
+    const { error } = await sb.rpc('cancel_order', { p_order_id: orderId });
     if (error) throw error;
-    toast('ההזמנה נמחקה');
+    toast(returnsStock ? 'ההזמנה בוטלה והמלאי הוחזר ✓' : 'ההזמנה נמחקה');
     loadOrders();
   } catch (err) { toast(friendlyError(err), true); }
 }
@@ -212,6 +220,70 @@ async function markCollected(orderId) {
     toast('סומן כנאספה ✓');
     loadOrders();
   } catch (err) { toast(friendlyError(err), true); }
+}
+
+let addItemOrderId = null;
+
+async function openAddItemModal(orderId) {
+  const order = allOrders.find(o => o.id === orderId);
+  if (!order) return;
+  addItemOrderId = orderId;
+  await loadWarehouses(true);
+  $('addItemWarehouse').innerHTML = WH_KEYS.map(wh =>
+    `<option value="${esc(wh)}" ${wh === order.warehouse ? 'selected' : ''}>${esc(WH_LABEL[wh] || wh)}</option>`).join('');
+  $('addItemSearch').value = '';
+  $('addItemModal').classList.add('open');
+  await loadAddItemChoices();
+}
+
+function closeAddItemModal() {
+  $('addItemModal').classList.remove('open');
+  addItemOrderId = null;
+}
+
+async function loadAddItemChoices() {
+  const list = $('addItemList');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  const warehouse = $('addItemWarehouse').value;
+  try {
+    const { data, error } = await sb.from('inventory')
+      .select('id, name, qty, category').eq('warehouse', warehouse).order('name');
+    if (error) throw error;
+    list.dataset.items = JSON.stringify(data || []);
+    renderAddItemChoices();
+  } catch (err) { list.innerHTML = `<div class="admin-empty">${esc(friendlyError(err))}</div>`; }
+}
+
+function renderAddItemChoices() {
+  const list = $('addItemList');
+  const items = JSON.parse(list.dataset.items || '[]');
+  const query = $('addItemSearch').value.trim().toLowerCase();
+  const filtered = items.filter(item => !query || item.name.toLowerCase().includes(query) ||
+    (item.category || '').toLowerCase().includes(query));
+  list.innerHTML = filtered.length ? filtered.map(item => `
+    <div class="add-item-row" data-name="${esc(item.name)}">
+      <div><strong>${esc(item.name)}</strong><small>${esc(item.category || 'כללי')} · במלאי ${item.qty}</small></div>
+      <input type="number" min="1" max="${item.qty}" value="1" aria-label="כמות ${esc(item.name)}">
+      <button data-act="confirm-add-item" ${item.qty <= 0 ? 'disabled' : ''}>הוסף</button>
+    </div>`).join('') : '<div class="admin-empty">לא נמצאו פריטים</div>';
+}
+
+async function addItemToOrder(row) {
+  const button = row.querySelector('button');
+  const qty = Math.max(1, parseInt(row.querySelector('input').value, 10) || 1);
+  button.disabled = true;
+  try {
+    const { error } = await sb.rpc('add_order_item_admin', {
+      p_order_id: addItemOrderId,
+      p_warehouse: $('addItemWarehouse').value,
+      p_name: row.dataset.name,
+      p_qty: qty,
+    });
+    if (error) throw error;
+    toast('הפריט נוסף להזמנה ✓');
+    closeAddItemModal();
+    loadOrders();
+  } catch (err) { toast(friendlyError(err), true); button.disabled = false; }
 }
 
 async function saveOrderNote(orderId, cardEl) {
@@ -239,7 +311,7 @@ async function setItemQty(itemId, qty, rowEl) {
 
   if (input) input.disabled = true;
   try {
-    const { error } = await sb.from('order_items').update({ qty }).eq('id', itemId);
+    const { error } = await sb.rpc('set_order_item_qty_admin', { p_item_id: itemId, p_qty: qty });
     if (error) throw error;
     if (input) { input.value = qty; input.dataset.prev = qty; }
     const original = Number(rowEl.dataset.originalQty || 0);
@@ -815,12 +887,12 @@ async function loadUsers() {
         </div>
         ${isMain
           ? '<span class="order-status approved">מנהל ראשי</span>'
-          : `<div class="user-actions"><select class="role-select" data-act="role">
-               <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>משתמש</option>
-               <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option>
-             </select>
-             <button class="user-action-btn block" data-act="block-user">${blocked ? 'בטל חסימה' : 'חסום'}</button>
-             <button class="user-action-btn delete" data-act="delete-user">מחק</button></div>`}
+          : `<select class="role-select" data-act="user-action" data-current="${blocked ? 'blocked' : u.role}">
+               <option value="user" ${!blocked && u.role !== 'admin' ? 'selected' : ''}>משתמש</option>
+               <option value="admin" ${!blocked && u.role === 'admin' ? 'selected' : ''}>מנהל</option>
+               <option value="blocked" ${blocked ? 'selected' : ''}>חסום</option>
+               <option value="delete">מחק משתמש</option>
+             </select>`}
       </div>`;
     }).join('');
   } catch (err) {
@@ -832,6 +904,7 @@ async function setRole(userId, role, selectEl) {
   try {
     const { error } = await sb.from('profiles').update({ role }).eq('id', userId);
     if (error) throw error;
+    if (selectEl) selectEl.dataset.current = role;
     toast(role === 'admin' ? 'המשתמש הוגדר כמנהל ✓' : 'ההרשאה שונתה למשתמש רגיל ✓');
   } catch (err) {
     toast(friendlyError(err), true);
@@ -844,7 +917,7 @@ async function manageUser(userId, action, rowEl) {
   const isDelete = action === 'delete';
   const isBlocked = rowEl.classList.contains('user-blocked');
   const prompt = isDelete
-    ? `למחוק לצמיתות את ${label}? לא ניתן לבטל פעולה זו.`
+    ? `האם אתה בטוח שברצונך למחוק את המשתמש ${label}? לא ניתן לבטל פעולה זו.`
     : `${isBlocked ? 'לבטל את חסימת' : 'לחסום את'} ${label}?`;
   if (!confirm(prompt)) return;
   try {
@@ -1100,16 +1173,25 @@ export function initAdmin() {
     }
   });
 
-  // משתמשים — שינוי תפקיד
+  // משתמשים — שינוי תפקיד, חסימה או מחיקה מתוך הרשימה הנפתחת
   on('usersList', 'change', (e) => {
-    if (e.target.dataset.act !== 'role') return;
-    setRole(e.target.closest('[data-user]').dataset.user, e.target.value, e.target);
-  });
-  on('usersList', 'click', (e) => {
-    const btn = e.target.closest('[data-act="block-user"], [data-act="delete-user"]');
-    if (!btn) return;
-    const row = btn.closest('[data-user]');
-    manageUser(row.dataset.user, btn.dataset.act === 'delete-user' ? 'delete' : 'toggle-block', row);
+    if (e.target.dataset.act !== 'user-action') return;
+    const select = e.target;
+    const row = select.closest('[data-user]');
+    const value = select.value;
+    if (value === 'delete') {
+      select.value = select.dataset.current;
+      return manageUser(row.dataset.user, 'delete', row);
+    }
+    if (value === 'blocked') {
+      select.value = select.dataset.current;
+      return manageUser(row.dataset.user, 'toggle-block', row);
+    }
+    if (select.dataset.current === 'blocked') {
+      select.value = select.dataset.current;
+      return manageUser(row.dataset.user, 'toggle-block', row);
+    }
+    setRole(row.dataset.user, value, select);
   });
 
   // התראות
@@ -1150,6 +1232,7 @@ export function initAdmin() {
       if (act === 'collected') return markCollected(orderId);
       if (act === 'cert') return downloadCert(orderId);
       if (act === 'save-note') return saveOrderNote(orderId, card);
+      if (act === 'add-item') return openAddItemModal(orderId);
 
       const row = btn.closest('[data-item]');
       if (!row) return;
@@ -1188,5 +1271,14 @@ export function initAdmin() {
     on(listId, 'focusin', (e) => {
       if (e.target.dataset.act === 'qty') e.target.select();
     });
+  });
+
+  on('addItemWarehouse', 'change', loadAddItemChoices);
+  on('addItemSearch', 'input', renderAddItemChoices);
+  on('addItemClose', 'click', closeAddItemModal);
+  on('addItemModal', 'click', (e) => { if (e.target === $('addItemModal')) closeAddItemModal(); });
+  on('addItemList', 'click', (e) => {
+    const btn = e.target.closest('[data-act="confirm-add-item"]');
+    if (btn) addItemToOrder(btn.closest('.add-item-row'));
   });
 }

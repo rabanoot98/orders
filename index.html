@@ -7,7 +7,7 @@
 <link rel="icon" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <meta name="theme-color" content="#1c1c2e">
-<link rel="stylesheet" href="styles.css?v=20260823-order-cards">
+<link rel="stylesheet" href="styles.css?v=20260823-order-items">
 </head>
 <body>
 
@@ -309,6 +309,24 @@
 </div>
 
 <!-- ══ INVENTORY ITEM EDITOR ══ -->
+<div class="confirm-overlay" id="addItemModal">
+  <div class="confirm-box add-item-modal-box">
+    <div class="modal-title-row">
+      <h2>הוספת פריט להזמנה</h2>
+      <button class="close-btn" id="addItemClose">✕</button>
+    </div>
+    <label class="modal-field-label">מחסן
+      <select class="field" id="addItemWarehouse"></select>
+    </label>
+    <div class="search-bar add-item-search">
+      <span>🔍</span>
+      <input type="search" id="addItemSearch" placeholder="חיפוש לפי שם או קטגוריה...">
+    </div>
+    <div id="addItemList" class="add-item-list"></div>
+  </div>
+</div>
+
+<!-- ══ INVENTORY ITEM EDITOR ══ -->
 <div class="confirm-overlay" id="invItemModal">
   <div class="inventory-modal-card">
     <div class="cart-header">
@@ -344,6 +362,6 @@
 <div class="toast" id="toast"></div>
 
 <script src="config.js"></script>
-<script type="module" src="app.js?v=20260823-order-cards"></script>
+<script type="module" src="app.js?v=20260823-order-items"></script>
 </body>
 </html>

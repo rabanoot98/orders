@@ -607,13 +607,14 @@ body[data-wh] .submit-btn { background: var(--wh-accent); }
   border-radius: 14px; padding: 6px 12px;
   font-family: 'Heebo', sans-serif; font-size: .78rem; font-weight: 700; cursor: pointer;
 }
-.order-actions { display: flex; gap: 8px; margin-top: 12px; }
+.order-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .order-actions button {
   flex: 1; padding: 12px; border-radius: var(--radius-sm);
   font-family: 'Heebo', sans-serif; font-size: .85rem; font-weight: 700;
   cursor: pointer; border: none; transition: opacity .18s;
 }
 .btn-approve { background: var(--success); color: white; }
+.btn-add-item { background: var(--accent2); color: white; }
 .btn-approve:disabled { opacity: .45; cursor: not-allowed; }
 .btn-delete { background: #fee2e2; color: #dc2626; flex: 0 0 auto !important; padding: 12px 15px !important; }
 .order-note-box {
@@ -650,16 +651,19 @@ body[data-wh] .submit-btn { background: var(--wh-accent); }
   min-height: 48px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: .9rem;
   box-sizing: border-box;
 }
-.user-actions { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-.user-action-btn { border: 0; border-radius: 9px; padding: 8px 10px; font: 700 .75rem 'Heebo', sans-serif; cursor: pointer; }
-.user-action-btn.block { background: #fff3cd; color: #755800; }
-.user-action-btn.delete { background: #fee2e2; color: #b91c1c; }
 .user-row.user-blocked { opacity: .68; }
 .user-row.user-blocked .user-email::after { content: ' · חסום'; color: #b91c1c; font-size: .7rem; }
 @media (max-width: 560px) {
   .user-row { align-items: flex-start; }
-  .user-actions { max-width: 185px; }
 }
+.add-item-modal-box { max-width: 620px; width: min(92vw, 620px); text-align: right; }
+.add-item-search { margin: 10px 0; }
+.add-item-list { max-height: 52vh; overflow-y: auto; border-top: 1px solid var(--border); }
+.add-item-row { display: grid; grid-template-columns: minmax(0, 1fr) 64px auto; gap: 8px; align-items: center; padding: 9px 2px; border-bottom: 1px solid var(--border); }
+.add-item-row small { display: block; color: var(--text-light); font-size: .7rem; }
+.add-item-row input { width: 64px; padding: 8px 4px; border: 1px solid var(--border); border-radius: 8px; text-align: center; font: inherit; }
+.add-item-row button { border: 0; border-radius: 8px; padding: 9px 12px; background: var(--success); color: white; font: 700 .78rem 'Heebo', sans-serif; cursor: pointer; }
+.add-item-row button:disabled { opacity: .4; cursor: not-allowed; }
 .inv-row.clickable { cursor: pointer; border-radius: 8px; padding-inline: 6px; transition: background .15s; }
 .inv-row.clickable:hover { background: #f2f1ed; }
 .inv-name { flex: 1; min-width: 0; }

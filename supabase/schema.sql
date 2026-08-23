@@ -57,7 +57,8 @@ create table if not exists public.order_items (
   id        bigint generated always as identity primary key,
   order_id  uuid not null references public.orders(id) on delete cascade,
   name      text not null,
-  qty       integer not null check (qty >= 0)
+  qty       integer not null check (qty >= 0),
+  warehouse text
 );
 
 create index if not exists order_items_order_idx on public.order_items (order_id);
@@ -256,11 +257,11 @@ begin
     raise exception 'ההזמנה כבר אושרה';
   end if;
 
-  for v_rec in select name, qty from public.order_items where order_id = p_order_id loop
+  for v_rec in select name, qty, coalesce(warehouse, v_wh) as source_wh from public.order_items where order_id = p_order_id loop
     v_new := null;
     update public.inventory
        set qty = greatest(0, qty - v_rec.qty)
-     where warehouse = v_wh and name = v_rec.name
+     where warehouse = v_rec.source_wh and name = v_rec.name
      returning qty into v_new;
 
     if v_new is null then
