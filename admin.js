@@ -85,14 +85,14 @@ function orderCard(o) {
   const stLabel = isCollected ? 'נאספה' : (isReady ? 'מוכנה לאיסוף' : 'ממתינה לאישור');
 
   const items = (o.order_items || []).map(it => `
-    <div class="order-item-row" data-item="${it.id}">
+    <div class="order-item-row" data-item="${it.id}" data-original-qty="${it.qty}" title="לחיצה כפולה לסימון הפריט">
       <span class="order-item-name">${esc(it.name)}</span>
       ${editable ? `
         <button class="oi-qty-btn" data-act="dec">−</button>
         <input type="number" class="oi-qty-input" value="${it.qty}" min="0"
                data-act="qty" data-prev="${it.qty}" inputmode="numeric" aria-label="כמות">
         <button class="oi-qty-btn" data-act="inc">+</button>
-        <button class="oi-qty-btn" data-act="rm" title="הסר">×</button>` : `<span class="oi-qty">×${it.qty}</span>`}
+        <small class="oi-original" hidden>הוזמן: ${it.qty}</small>` : `<span class="oi-qty">×${it.qty}</span>`}
     </div>`).join('');
 
   const cert = o.cert_path
@@ -111,7 +111,7 @@ function orderCard(o) {
        </div>`;
 
   return `<div class="order-card ${isReady || isCollected ? 'approved' : ''}" data-order="${o.id}">
-    <div class="order-head">
+    <div class="order-head" data-act="toggle-order" role="button" tabindex="0" aria-expanded="false">
       <div class="order-meta">
         <div class="order-customer">${esc(o.initials || '—')}</div>
         <div class="order-sub">${esc(o.phone || '')}${o.email ? ' · ' + esc(o.email) : ''}</div>
@@ -119,24 +119,30 @@ function orderCard(o) {
         <div class="order-wh">📦 ${esc(WH_LABEL[o.warehouse] || o.warehouse)}</div>
       </div>
       <span class="order-status ${stCls}">${stLabel}</span>
+      <span class="order-chevron" aria-hidden="true">⌄</span>
     </div>
-    <div class="order-items">${items}</div>
-    ${cert}
-    <div class="order-note-box">
+    <div class="order-details" hidden>
+      <div class="order-items">${items}</div>
+      ${cert}
+      <div class="order-note-box">
       <label for="note-${o.id}">הערת מנהל</label>
       <div class="order-note-line">
         <textarea id="note-${o.id}" data-act="note" maxlength="1000" rows="2"
                   placeholder="הוסף הערה להזמנה...">${esc(o.admin_note || '')}</textarea>
         <button data-act="save-note">שמור</button>
       </div>
+      </div>
+      ${actions}
     </div>
-    ${actions}
   </div>`;
 }
 
 // ── פעולות על הזמנה ─────────────────────────────────────────
 async function approveOrder(orderId, cardEl) {
-  if (!confirm('לסמן את ההזמנה כמוכנה לאיסוף, להוריד מהמלאי ולשלוח מייל למזמין?')) return;
+  const rows = [...cardEl.querySelectorAll('.order-item-row')];
+  const allChecked = rows.length > 0 && rows.every(row => row.classList.contains('item-checked'));
+  if (!allChecked && !confirm('לא סימנת את כל הפריטים האם הכנסת את כולם?')) return;
+  if (allChecked && !confirm('לסמן את ההזמנה כמוכנה לאיסוף, להוריד מהמלאי ולשלוח מייל למזמין?')) return;
   const btn = cardEl.querySelector('[data-act="approve"]');
   if (btn) { btn.disabled = true; btn.textContent = 'מאשר...'; }
   try {
@@ -224,7 +230,6 @@ async function saveOrderNote(orderId, cardEl) {
   }
 }
 
-// שמירת כמות פריט בהזמנה. qty=0 מסיר את הפריט (order_items מחייב qty > 0).
 async function setItemQty(itemId, qty, rowEl) {
   const input = rowEl.querySelector('.oi-qty-input');
   const prev = Number(input?.dataset.prev ?? input?.value ?? 0);
@@ -234,16 +239,12 @@ async function setItemQty(itemId, qty, rowEl) {
 
   if (input) input.disabled = true;
   try {
-    if (qty === 0) {
-      const { error } = await sb.from('order_items').delete().eq('id', itemId);
-      if (error) throw error;
-      rowEl.remove();
-      toast('הפריט הוסר מההזמנה');
-      return;
-    }
     const { error } = await sb.from('order_items').update({ qty }).eq('id', itemId);
     if (error) throw error;
     if (input) { input.value = qty; input.dataset.prev = qty; }
+    const original = Number(rowEl.dataset.originalQty || 0);
+    const label = rowEl.querySelector('.oi-original');
+    if (label) label.hidden = qty === original;
   } catch (err) {
     if (input) input.value = prev;          // לא משאירים על המסך ערך שלא נשמר
     toast(friendlyError(err), true);
@@ -261,27 +262,11 @@ async function changeItemQty(itemId, delta, rowEl) {
   await setItemQty(itemId, currentItemQty(rowEl) + delta, rowEl);
 }
 
-// הזנה ידנית — 0 או ריק מתפרשים כהסרה, ולכן מאשרים קודם
 async function typeItemQty(itemId, rowEl, input) {
-  const prev = parseInt(input.dataset.prev, 10) || 0;
   const raw = input.value.trim();
-  const qty = parseInt(raw, 10);
-
-  if (raw === '' || isNaN(qty) || qty < 0) { input.value = prev; return; }
-  if (qty === 0) {
-    if (!confirm('כמות 0 תסיר את הפריט מההזמנה. להמשיך?')) { input.value = prev; return; }
-  }
+  const qty = raw === '' ? 0 : parseInt(raw, 10);
+  if (isNaN(qty) || qty < 0) { input.value = input.dataset.prev || '0'; return; }
   await setItemQty(itemId, qty, rowEl);
-}
-
-async function removeItem(itemId, rowEl) {
-  if (!confirm('להסיר את הפריט מההזמנה?')) return;
-  try {
-    const { error } = await sb.from('order_items').delete().eq('id', itemId);
-    if (error) throw error;
-    rowEl.remove();
-    toast('הפריט הוסר');
-  } catch (err) { toast(friendlyError(err), true); }
 }
 
 async function downloadCert(orderId) {
@@ -812,7 +797,7 @@ async function loadUsers() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     const { data, error } = await sb.from('profiles')
-      .select('id, email, full_name, initials, phone, role, is_guest, created_at')
+      .select('id, email, full_name, initials, phone, role, is_guest, blocked_at, created_at')
       .eq('is_guest', false)
       .order('created_at', { ascending: false });
     if (error) throw error;
@@ -822,17 +807,20 @@ async function loadUsers() {
     el.innerHTML = data.map(u => {
       const isMain = (u.email || '').toLowerCase() === ADMIN_EMAIL;
       const details = [u.initials, u.phone].filter(Boolean).join(' · ');
-      return `<div class="user-row" data-user="${u.id}">
+      const blocked = Boolean(u.blocked_at);
+      return `<div class="user-row ${blocked ? 'user-blocked' : ''}" data-user="${u.id}">
         <div class="user-info">
           <div class="user-email">${esc(u.email || u.full_name || '—')}</div>
           <div class="user-sub">${esc(details || 'לא מילא פרטים')}</div>
         </div>
         ${isMain
           ? '<span class="order-status approved">מנהל ראשי</span>'
-          : `<select class="role-select" data-act="role">
+          : `<div class="user-actions"><select class="role-select" data-act="role">
                <option value="user" ${u.role !== 'admin' ? 'selected' : ''}>משתמש</option>
                <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>מנהל</option>
-             </select>`}
+             </select>
+             <button class="user-action-btn block" data-act="block-user">${blocked ? 'בטל חסימה' : 'חסום'}</button>
+             <button class="user-action-btn delete" data-act="delete-user">מחק</button></div>`}
       </div>`;
     }).join('');
   } catch (err) {
@@ -849,6 +837,21 @@ async function setRole(userId, role, selectEl) {
     toast(friendlyError(err), true);
     if (selectEl) selectEl.value = role === 'admin' ? 'user' : 'admin';  // החזרה למצב הקודם
   }
+}
+
+async function manageUser(userId, action, rowEl) {
+  const label = rowEl.querySelector('.user-email')?.textContent || 'המשתמש';
+  const isDelete = action === 'delete';
+  const isBlocked = rowEl.classList.contains('user-blocked');
+  const prompt = isDelete
+    ? `למחוק לצמיתות את ${label}? לא ניתן לבטל פעולה זו.`
+    : `${isBlocked ? 'לבטל את חסימת' : 'לחסום את'} ${label}?`;
+  if (!confirm(prompt)) return;
+  try {
+    await invokeFn('manage-user', { user_id: userId, action: isDelete ? 'delete' : (isBlocked ? 'unblock' : 'block') });
+    toast(isDelete ? 'המשתמש נמחק' : (isBlocked ? 'החסימה בוטלה' : 'המשתמש נחסם'));
+    loadUsers();
+  } catch (err) { toast(friendlyError(err), true); }
 }
 
 // ── כתובות להתראה על הזמנה חדשה ─────────────────────────────
@@ -1102,6 +1105,12 @@ export function initAdmin() {
     if (e.target.dataset.act !== 'role') return;
     setRole(e.target.closest('[data-user]').dataset.user, e.target.value, e.target);
   });
+  on('usersList', 'click', (e) => {
+    const btn = e.target.closest('[data-act="block-user"], [data-act="delete-user"]');
+    if (!btn) return;
+    const row = btn.closest('[data-user]');
+    manageUser(row.dataset.user, btn.dataset.act === 'delete-user' ? 'delete' : 'toggle-block', row);
+  });
 
   // התראות
   on('refreshNotify', 'click', loadNotify);
@@ -1127,6 +1136,15 @@ export function initAdmin() {
       const orderId = card.dataset.order;
       const act = btn.dataset.act;
 
+      if (act === 'toggle-order') {
+        const details = card.querySelector('.order-details');
+        const open = details.hidden;
+        details.hidden = !open;
+        card.classList.toggle('open', open);
+        btn.setAttribute('aria-expanded', String(open));
+        return;
+      }
+
       if (act === 'approve') return approveOrder(orderId, card);
       if (act === 'del') return deleteOrder(orderId);
       if (act === 'collected') return markCollected(orderId);
@@ -1138,7 +1156,12 @@ export function initAdmin() {
       const itemId = +row.dataset.item;
       if (act === 'inc') return changeItemQty(itemId, 1, row);
       if (act === 'dec') return changeItemQty(itemId, -1, row);
-      if (act === 'rm') return removeItem(itemId, row);
+    });
+
+    on(listId, 'dblclick', (e) => {
+      if (e.target.closest('button, input, textarea, select')) return;
+      const row = e.target.closest('.order-item-row');
+      if (row) row.classList.toggle('item-checked');
     });
 
     // הזנת כמות ידנית
@@ -1150,6 +1173,9 @@ export function initAdmin() {
 
     // Enter מאשר, Esc מבטל
     on(listId, 'keydown', (e) => {
+      if (e.target.dataset.act === 'toggle-order' && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault(); e.target.click(); return;
+      }
       if (e.target.dataset.act !== 'qty') return;
       if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
       if (e.key === 'Escape') {

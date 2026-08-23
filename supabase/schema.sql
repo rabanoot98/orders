@@ -12,6 +12,7 @@ create table if not exists public.profiles (
   phone       text,
   role        text not null default 'user' check (role in ('user','admin')),
   is_guest    boolean not null default false,
+  blocked_at  timestamptz,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );
@@ -56,7 +57,7 @@ create table if not exists public.order_items (
   id        bigint generated always as identity primary key,
   order_id  uuid not null references public.orders(id) on delete cascade,
   name      text not null,
-  qty       integer not null check (qty > 0)
+  qty       integer not null check (qty >= 0)
 );
 
 create index if not exists order_items_order_idx on public.order_items (order_id);

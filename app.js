@@ -6,7 +6,7 @@ import {
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
   fetchInventory,
 } from './lib.js?v=20260816-category-tools';
-import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260816-category-tools';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260823-order-cards';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
