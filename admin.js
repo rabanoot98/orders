@@ -32,7 +32,7 @@ function setTab(pane) {
 }
 
 // ── הזמנות ──────────────────────────────────────────────────
-const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty, warehouse)';
+const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty, warehouse, fulfilled)';
 let allOrders = [];
 let orderStage = 'pending';
 
@@ -86,7 +86,7 @@ function orderCard(o) {
   const stLabel = isCollected ? 'נאספה' : (isReady ? 'מוכנה לאיסוף' : 'ממתינה לאישור');
 
   const items = (o.order_items || []).map(it => `
-    <div class="order-item-row" data-item="${it.id}" data-original-qty="${it.qty}" title="לחיצה כפולה לסימון הפריט">
+    <div class="order-item-row ${it.fulfilled ? 'item-checked' : ''}" data-item="${it.id}" data-original-qty="${it.qty}" title="לחיצה כפולה לסימון הפריט">
       <span class="order-item-name">${esc(it.name)}</span>
       ${editable ? `
         <button class="oi-qty-btn" data-act="dec">−</button>
@@ -104,7 +104,7 @@ function orderCard(o) {
   const actions = isPending
     ? `<div class="order-actions">
          <button class="btn-add-item" data-act="add-item">＋ הוסף פריט</button>
-         <button class="btn-approve" data-act="approve">סמן כמוכנה לאיסוף + הורד מלאי</button>
+         <button class="btn-approve" data-act="approve">מוכנה לאיסוף</button>
          <button class="btn-delete" data-act="del">🗑️</button>
        </div>`
     : `<div class="order-actions">
@@ -162,7 +162,7 @@ async function approveOrder(orderId, cardEl) {
     loadOrders();
   } catch (err) {
     toast(friendlyError(err), true);
-    if (btn) { btn.disabled = false; btn.textContent = 'סמן כמוכנה לאיסוף + הורד מלאי'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'מוכנה לאיסוף'; }
   }
 }
 
@@ -339,6 +339,19 @@ async function typeItemQty(itemId, rowEl, input) {
   const qty = raw === '' ? 0 : parseInt(raw, 10);
   if (isNaN(qty) || qty < 0) { input.value = input.dataset.prev || '0'; return; }
   await setItemQty(itemId, qty, rowEl);
+}
+
+async function toggleItemFulfilled(rowEl) {
+  const itemId = +rowEl.dataset.item;
+  const fulfilled = !rowEl.classList.contains('item-checked');
+  rowEl.classList.toggle('item-checked', fulfilled);
+  try {
+    const { error } = await sb.from('order_items').update({ fulfilled }).eq('id', itemId);
+    if (error) throw error;
+  } catch (err) {
+    rowEl.classList.toggle('item-checked', !fulfilled);
+    toast(friendlyError(err), true);
+  }
 }
 
 async function downloadCert(orderId) {
@@ -1244,7 +1257,7 @@ export function initAdmin() {
     on(listId, 'dblclick', (e) => {
       if (e.target.closest('button, input, textarea, select')) return;
       const row = e.target.closest('.order-item-row');
-      if (row) row.classList.toggle('item-checked');
+      if (row) toggleItemFulfilled(row);
     });
 
     // הזנת כמות ידנית

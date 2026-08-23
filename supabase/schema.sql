@@ -58,7 +58,8 @@ create table if not exists public.order_items (
   order_id  uuid not null references public.orders(id) on delete cascade,
   name      text not null,
   qty       integer not null check (qty >= 0),
-  warehouse text
+  warehouse text,
+  fulfilled boolean not null default false
 );
 
 create index if not exists order_items_order_idx on public.order_items (order_id);
