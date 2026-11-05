@@ -564,6 +564,9 @@ body[data-wh] .submit-btn { background: var(--wh-accent); }
 .order-item-row { display: flex; align-items: center; gap: 8px; padding: 5px 6px; border-radius: 9px; transition: background .15s; }
 .order-item-row.item-checked { background: #dff3e5; }
 .order-item-name { flex: 1; font-size: .89rem; font-weight: 600; min-width: 0; }
+.oi-stock { font-size: .68rem; font-weight: 400; color: var(--text-light); white-space: nowrap; }
+.oi-qty-btn { flex-shrink: 0; }
+input[type="number"]::placeholder { color: var(--text-light); opacity: 1; }
 .oi-qty-btn {
   width: 34px; height: 34px; border-radius: 50%;
   border: 1.5px solid var(--border); background: var(--bg);

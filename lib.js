@@ -75,6 +75,8 @@ export const state = {
 // ── DOM helpers ──
 export const $ = (id) => document.getElementById(id);
 export const on = (id, ev, fn) => { const e = $(id); if (e) e.addEventListener(ev, fn); };
+// Zero is an empty numeric field with a 0 placeholder; calculations still use 0.
+export const quantityValue = (qty) => Number(qty) === 0 ? '' : String(qty ?? '');
 
 export function esc(s) {
   return String(s ?? '')

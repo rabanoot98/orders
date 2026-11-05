@@ -4,9 +4,9 @@
 import {
   sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state, loadWarehouses,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
-  fetchInventory,
-} from './lib.js?v=20260816-category-tools';
-import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20260823-synced-checks';
+  fetchInventory, quantityValue,
+} from './lib.js?v=20261105-stock-pwa';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20261105-stock-pwa';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -257,7 +257,7 @@ function renderProducts() {
       </div>
       <div class="qty-control">
         <button class="qty-btn minus" data-act="dec" ${qty === 0 ? 'disabled' : ''}>−</button>
-        <input type="number" class="qty-display" value="${qty}" min="0" data-act="set">
+        <input type="number" class="qty-display" value="${quantityValue(qty)}" placeholder="0" min="0" data-act="set">
         <button class="qty-btn plus" data-act="inc" ${qty >= max ? 'disabled' : ''}>+</button>
       </div>
     </div>`;
@@ -476,6 +476,11 @@ async function loadMyOrders() {
 
 // ── חיווט אירועים ───────────────────────────────────────────
 function wire() {
+  document.addEventListener('input', (e) => {
+    if (e.target.matches('input[type="number"]') && e.target.value !== '' && Number(e.target.value) === 0) {
+      e.target.value = '';
+    }
+  }, true);
   // כניסה
   on('googleBtn', 'click', handleGoogle);
   on('guestBtn', 'click', handleGuest);

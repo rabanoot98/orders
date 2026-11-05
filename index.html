@@ -5,9 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>מערכת הזמנות ציוד דת — רבנות אוגדה 98</title>
 <link rel="icon" href="logo.png">
-<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="רבנות 98">
 <meta name="theme-color" content="#1c1c2e">
-<link rel="stylesheet" href="styles.css?v=20260823-synced-checks">
+<link rel="stylesheet" href="styles.css?v=20261105-stock-pwa">
+<link rel="stylesheet" href="pwa.css?v=20261105-pwa">
+<script src="pwa-install.js?v=20261105-pwa" defer></script>
 </head>
 <body>
 
@@ -28,6 +33,7 @@
           <button class="account-menu-item" id="myOrdersBtn" style="display:none">📋 ההזמנות שלי</button>
           <button class="account-menu-item" id="adminBtn" style="display:none">🛠️ ניהול</button>
           <button class="account-menu-item" id="profileBtn" style="display:none">✏️ הפרטים שלי</button>
+          <button class="account-menu-item" id="pwaMenuInstall" hidden>📲 התקנה בנייד</button>
           <button class="account-menu-item logout" id="logoutBtn">🚪 יציאה</button>
         </div>
       </div>
@@ -36,6 +42,18 @@
 </header>
 
 <div class="container">
+
+  <section class="pwa-banner" id="pwaBanner" aria-labelledby="pwaBannerTitle" hidden>
+    <img class="pwa-banner-icon" src="icons/icon-192.png" alt="" width="48" height="48">
+    <div class="pwa-banner-copy">
+      <h2 id="pwaBannerTitle">מערכת ההזמנות במסך הבית שלך</h2>
+      <p>גישה נוחה מהנייד, עם אותם נתונים עדכניים.</p>
+    </div>
+    <div class="pwa-banner-actions">
+      <button class="pwa-primary" id="pwaInstall" type="button">התקנה בנייד</button>
+      <button class="pwa-secondary" id="pwaDismiss" type="button">אחר כך</button>
+    </div>
+  </section>
 
   <!-- ══ CONFIG MISSING ══ -->
   <div class="screen" id="configScreen">
@@ -217,7 +235,7 @@
         <div class="section-title">קליטת סחורה</div>
         <div class="rc-grid">
           <input type="text" id="rcName" class="field" placeholder="שם המוצר">
-          <input type="number" id="rcQty" class="field" placeholder="כמות" min="1" value="1">
+          <input type="number" id="rcQty" class="field" placeholder="0" min="1" value="1">
           <input type="text" id="rcCategory" class="field" placeholder="קטגוריה (לא חובה)">
         </div>
         <label class="rc-check"><input type="checkbox" id="rcExposed" checked> חשוף להזמנות (יופיע ללקוחות)</label>
@@ -344,10 +362,10 @@
     </label>
     <div class="inventory-modal-grid">
       <label class="modal-field-label">כמות במלאי
-        <input type="number" class="field" id="invModalQty" min="0">
+        <input type="number" class="field" id="invModalQty" min="0" placeholder="0">
       </label>
       <label class="modal-field-label">מקס׳ להזמנה
-        <input type="number" class="field" id="invModalMax" min="1" placeholder="ללא הגבלה">
+        <input type="number" class="field" id="invModalMax" min="1" placeholder="0" aria-label="מקסימום להזמנה (ריק = ללא הגבלה)">
       </label>
     </div>
     <label class="modal-check"><input type="checkbox" id="invModalExposed"> חשוף להזמנות</label>
@@ -361,7 +379,18 @@
 
 <div class="toast" id="toast"></div>
 
+<dialog class="pwa-dialog" id="pwaHelp" aria-labelledby="pwaHelpTitle" aria-describedby="pwaHelpIntro">
+  <div class="pwa-dialog-heading">
+    <h2 id="pwaHelpTitle">התקנה במסך הבית</h2>
+    <button class="pwa-close" id="pwaHelpClose" type="button" aria-label="סגירת הוראות ההתקנה">✕</button>
+  </div>
+  <p id="pwaHelpIntro"></p>
+  <ol id="pwaHelpSteps"></ol>
+  <p class="pwa-help-note">המלאי וההזמנות מתעדכנים כרגיל. לצפייה במלאי ולשליחת הזמנות נדרש חיבור לאינטרנט.</p>
+  <button class="pwa-primary" id="pwaHelpDone" type="button">הבנתי</button>
+</dialog>
+
 <script src="config.js"></script>
-<script type="module" src="app.js?v=20260823-synced-checks"></script>
+<script type="module" src="app.js?v=20261105-stock-pwa"></script>
 </body>
 </html>

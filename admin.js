@@ -4,8 +4,8 @@
 import {
   sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state, loadWarehouses,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
-  caps, fetchInventory, isMissingColumn,
-} from './lib.js?v=20260816-category-tools';
+  caps, fetchInventory, isMissingColumn, quantityValue,
+} from './lib.js?v=20261105-stock-pwa';
 
 const INV_COLS = 'id, warehouse, name, qty, category, exposed, max_order_qty';
 
@@ -35,6 +35,44 @@ function setTab(pane) {
 const ORDER_SELECT = 'id, initials, phone, email, warehouse, status, cert_mode, cert_path, admin_note, created_at, approved_at, order_items(id, name, qty, warehouse, fulfilled)';
 let allOrders = [];
 let orderStage = 'pending';
+let orderStock = null;
+const stockKey = (warehouse, name) => JSON.stringify([warehouse, name]);
+
+async function fetchOrderStock() {
+  const { data, error } = await sb.from('inventory').select('warehouse, name, qty');
+  if (error) throw error;
+  return new Map((data || []).map(item => [stockKey(item.warehouse, item.name), Number(item.qty)]));
+}
+
+function remainingStock(order, item, cardEl) {
+  const key = stockKey(item.warehouse ?? order.warehouse, item.name);
+  if (!orderStock?.has(key)) return null;
+  const matching = (order.order_items || []).filter(other =>
+    stockKey(other.warehouse ?? order.warehouse, other.name) === key);
+  const savedQty = matching.reduce((sum, other) => sum + Number(other.qty), 0);
+  const draftQty = matching.reduce((sum, other) => {
+    const input = cardEl?.querySelector(`[data-item="${other.id}"] .oi-qty-input`);
+    return sum + (input ? Math.max(0, parseInt(input.value, 10) || 0) : Number(other.qty));
+  }, 0);
+  // Ready orders have already deducted their saved quantities from inventory.
+  return orderStock.get(key) + (order.status === 'ready' ? savedQty : 0) - draftQty;
+}
+
+function stockLabel(order, item, cardEl) {
+  const remaining = remainingStock(order, item, cardEl);
+  return remaining === null ? 'יתרה: —' : `יתרה: ${remaining}`;
+}
+
+function updateOrderBalances() {
+  document.querySelectorAll('#ordersList [data-order]').forEach(card => {
+    const order = allOrders.find(o => o.id === card.dataset.order);
+    if (!order) return;
+    (order.order_items || []).forEach(item => {
+      const label = card.querySelector(`[data-item="${item.id}"] .oi-stock`);
+      if (label) label.textContent = stockLabel(order, item, card);
+    });
+  });
+}
 
 async function fetchOrders(statuses) {
   const { data, error } = await sb.from('orders')
@@ -49,7 +87,13 @@ async function loadOrders() {
   const el = $('ordersList');
   el.innerHTML = '<div class="loading"><div class="spinner"></div><div>טוען הזמנות...</div></div>';
   try {
-    allOrders = await fetchOrders(['pending', 'ready', 'collected']);
+    [allOrders, orderStock] = await Promise.all([
+      fetchOrders(['pending', 'ready', 'collected']),
+      fetchOrderStock().catch(err => {
+        toast('לא ניתן לטעון יתרות מלאי: ' + friendlyError(err), true);
+        return null;
+      }),
+    ]);
     renderOrderStage();
   } catch (err) {
     el.innerHTML = `<div class="admin-empty">שגיאה: ${esc(friendlyError(err))}</div>`;
@@ -87,10 +131,10 @@ function orderCard(o) {
 
   const items = (o.order_items || []).map(it => `
     <div class="order-item-row ${it.fulfilled ? 'item-checked' : ''}" data-item="${it.id}" data-original-qty="${it.qty}" title="לחיצה כפולה לסימון הפריט">
-      <span class="order-item-name">${esc(it.name)}</span>
+      <span class="order-item-name">${esc(it.name)}${editable ? ` <small class="oi-stock">${stockLabel(o, it)}</small>` : ''}</span>
       ${editable ? `
         <button class="oi-qty-btn" data-act="dec">−</button>
-        <input type="number" class="oi-qty-input" value="${it.qty}" min="0"
+        <input type="number" class="oi-qty-input" value="${quantityValue(it.qty)}" placeholder="0" min="0"
                data-act="qty" data-prev="${it.qty}" inputmode="numeric" aria-label="כמות">
         <button class="oi-qty-btn" data-act="inc">+</button>
         <small class="oi-original" hidden>הוזמן: ${it.qty}</small>` : `<span class="oi-qty">×${it.qty}</span>`}
@@ -263,7 +307,7 @@ function renderAddItemChoices() {
   list.innerHTML = filtered.length ? filtered.map(item => `
     <div class="add-item-row" data-name="${esc(item.name)}">
       <div><strong>${esc(item.name)}</strong><small>${esc(item.category || 'כללי')} · במלאי ${item.qty}</small></div>
-      <input type="number" min="1" max="${item.qty}" value="1" aria-label="כמות ${esc(item.name)}">
+      <input type="number" min="1" max="${item.qty}" value="1" placeholder="0" aria-label="כמות ${esc(item.name)}">
       <button data-act="confirm-add-item" ${item.qty <= 0 ? 'disabled' : ''}>הוסף</button>
     </div>`).join('') : '<div class="admin-empty">לא נמצאו פריטים</div>';
 }
@@ -304,30 +348,45 @@ async function saveOrderNote(orderId, cardEl) {
 
 async function setItemQty(itemId, qty, rowEl) {
   const input = rowEl.querySelector('.oi-qty-input');
+  if (input?.disabled) return;
   const prev = Number(input?.dataset.prev ?? input?.value ?? 0);
   qty = Math.max(0, parseInt(qty, 10) || 0);
 
-  if (qty === prev) { if (input) input.value = prev; return; }
+  if (input) input.value = quantityValue(qty);
+  updateOrderBalances();
+  if (qty === prev) return;
 
   if (input) input.disabled = true;
+  rowEl.querySelectorAll('.oi-qty-btn').forEach(btn => { btn.disabled = true; });
   try {
     const { error } = await sb.rpc('set_order_item_qty_admin', { p_item_id: itemId, p_qty: qty });
     if (error) throw error;
-    if (input) { input.value = qty; input.dataset.prev = qty; }
+    const order = allOrders.find(o => o.id === rowEl.closest('[data-order]').dataset.order);
+    const item = order?.order_items.find(it => it.id === itemId);
+    if (item) {
+      const key = stockKey(item.warehouse ?? order.warehouse, item.name);
+      if (order.status === 'ready' && orderStock?.has(key)) {
+        orderStock.set(key, orderStock.get(key) - (qty - prev));
+      }
+      item.qty = qty;
+    }
+    if (input) { input.value = quantityValue(qty); input.dataset.prev = qty; }
     const original = Number(rowEl.dataset.originalQty || 0);
     const label = rowEl.querySelector('.oi-original');
     if (label) label.hidden = qty === original;
   } catch (err) {
-    if (input) input.value = prev;          // לא משאירים על המסך ערך שלא נשמר
+    if (input) input.value = quantityValue(prev); // לא משאירים על המסך ערך שלא נשמר
     toast(friendlyError(err), true);
   } finally {
     if (input) input.disabled = false;
+    rowEl.querySelectorAll('.oi-qty-btn').forEach(btn => { btn.disabled = false; });
+    updateOrderBalances();
   }
 }
 
 function currentItemQty(rowEl) {
   const input = rowEl.querySelector('.oi-qty-input');
-  return parseInt(input?.dataset.prev ?? input?.value, 10) || 0;
+  return parseInt(input?.value, 10) || 0;
 }
 
 async function changeItemQty(itemId, delta, rowEl) {
@@ -337,7 +396,11 @@ async function changeItemQty(itemId, delta, rowEl) {
 async function typeItemQty(itemId, rowEl, input) {
   const raw = input.value.trim();
   const qty = raw === '' ? 0 : parseInt(raw, 10);
-  if (isNaN(qty) || qty < 0) { input.value = input.dataset.prev || '0'; return; }
+  if (isNaN(qty) || qty < 0) {
+    input.value = quantityValue(input.dataset.prev);
+    updateOrderBalances();
+    return;
+  }
   await setItemQty(itemId, qty, rowEl);
 }
 
@@ -567,10 +630,10 @@ function renderInventory() {
                  data-act="name" maxlength="120" aria-label="שם המוצר">
         </div>
         <div class="inv-edit-side">
-          <input type="number" class="inv-qty-input" min="0" value="${p.qty}" data-act="qty">
+          <input type="number" class="inv-qty-input" min="0" value="${quantityValue(p.qty)}" placeholder="0" data-act="qty">
           <label class="inv-limit">מקס׳ להזמנה
             <input type="number" class="inv-limit-input" min="1" value="${p.max_order_qty || ''}"
-                   placeholder="ללא" data-act="max" aria-label="מקסימום להזמנה">
+                   placeholder="0" data-act="max" aria-label="מקסימום להזמנה (ריק = ללא הגבלה)">
           </label>
           <label class="inv-exp"><input type="checkbox" ${p.exposed ? 'checked' : ''} data-act="exp"> חשוף</label>
         </div>
@@ -602,7 +665,7 @@ function openInventoryModal(id) {
   $('invCategoryOptions').innerHTML = currentWarehouseCategories()
     .map(category => `<option value="${esc(category)}"></option>`).join('');
   $('invModalCategory').value = item.category || '';
-  $('invModalQty').value = item.qty ?? 0;
+  $('invModalQty').value = quantityValue(item.qty);
   $('invModalMax').value = item.max_order_qty || '';
   $('invModalExposed').checked = !!item.exposed;
   showError('invModalError', '');
@@ -1160,7 +1223,7 @@ export function initAdmin() {
     const id = +row.dataset.inv;
     if (e.target.dataset.act === 'qty') {
       const qty = Math.max(0, parseInt(e.target.value, 10) || 0);
-      e.target.value = qty;
+      e.target.value = quantityValue(qty);
       updateInvField(id, { qty });
     } else if (e.target.dataset.act === 'max') {
       const raw = e.target.value.trim();
@@ -1260,6 +1323,11 @@ export function initAdmin() {
       if (row) toggleItemFulfilled(row);
     });
 
+    // Preview each keystroke without writing to the database until change/blur.
+    on(listId, 'input', (e) => {
+      if (e.target.dataset.act === 'qty') updateOrderBalances();
+    });
+
     // הזנת כמות ידנית
     on(listId, 'change', (e) => {
       if (e.target.dataset.act !== 'qty') return;
@@ -1275,7 +1343,8 @@ export function initAdmin() {
       if (e.target.dataset.act !== 'qty') return;
       if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); }
       if (e.key === 'Escape') {
-        e.target.value = e.target.dataset.prev || '';
+        e.target.value = quantityValue(e.target.dataset.prev);
+        updateOrderBalances();
         e.target.blur();
       }
     });
