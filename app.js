@@ -4,9 +4,9 @@
 import {
   sb, IS_CONFIGURED, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, state, loadWarehouses,
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
-  fetchInventory, quantityValue,
-} from './lib.js?v=20261105-stock-pwa';
-import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20261105-stock-pwa';
+  quantityValue, readSavedView, clearSavedView, saveCurrentView,
+} from './lib.js?v=20261115-reservations-view';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20261115-reservations-view';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -26,7 +26,7 @@ function renderWarehouseCards() {
   }).join('');
 }
 
-function afterAuthScreen() {
+async function afterAuthScreen() {
   // אם חסרים פרטים למשתמש רשום — מסך השלמת פרטים
   if (!state.isGuest && (!state.profile?.initials || !state.profile?.phone)) {
     $('obInitials').value = state.profile?.initials || '';
@@ -36,7 +36,30 @@ function afterAuthScreen() {
     showScreen('onboardScreen');
     return;
   }
-  goHome();
+  const view = readSavedView();
+  if (view) {
+    if (view.screen === 'adminScreen' && state.isAdmin) await openAdmin(view);
+    else if (view.screen === 'orderScreen' && WAREHOUSES[view.warehouse]?.active !== false && WAREHOUSES[view.warehouse]) {
+      await openWarehouse(view.warehouse);
+      for (const [name, item] of Object.entries(view.cart || {})) setQty(name, item.qty);
+      if (Object.entries(view.cart || {}).some(([name, item]) => (state.cart[name]?.qty || 0) !== Number(item.qty))) {
+        toast('כמויות הסל עודכנו לפי המלאי הפנוי כעת');
+      }
+      $('prodSearch').value = view.productSearch || '';
+      if (state.categories.includes(view.category)) state.activeCategory = view.category;
+      $('ordInitials').value = view.initials || '';
+      $('ordPhone').value = view.phone || '';
+      renderCategories(); renderProducts();
+    } else if (view.screen === 'myOrdersScreen' && !state.isGuest) await openMyOrders();
+    else if (view.screen === 'onboardScreen' && !state.isGuest) openProfileEdit();
+    else if (view.screen === 'successScreen') {
+      $('successText').textContent = view.successText || 'ההזמנה נשלחה בהצלחה';
+      showScreen('successScreen');
+    } else goHome();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    window.scrollTo(0, Math.max(0, Number(view.scrollY) || 0));
+    saveCurrentView();
+  } else goHome();
 }
 
 // ── מצב התחברות ─────────────────────────────────────────────
@@ -60,15 +83,23 @@ function paintAccountUI() {
   $('profileBtn').style.display = state.isGuest ? 'none' : 'block';
 }
 
-async function onSignedIn() {
-  await loadProfile();
-  await loadWarehouses();
-  renderWarehouseCards();
-  paintAccountUI();
-  afterAuthScreen();
+let signedInUserId = null;
+let signInTask = null;
+function onSignedIn() {
+  if (signedInUserId === state.user?.id && signInTask) return signInTask;
+  signedInUserId = state.user?.id;
+  signInTask = (async () => {
+    await loadProfile();
+    await loadWarehouses();
+    renderWarehouseCards();
+    paintAccountUI();
+    await afterAuthScreen();
+  })();
+  return signInTask;
 }
 
 function toLogin() {
+  signedInUserId = null; signInTask = null;
   state.user = null; state.profile = null;
   state.isAdmin = false; state.isGuest = false;
   state.cart = {};
@@ -148,7 +179,9 @@ async function handleGuest() {
 
 async function handleLogout() {
   closeAccountMenu();
+  clearSavedView();
   await sb.auth.signOut();
+  clearSavedView();
   toLogin();
 }
 
@@ -213,11 +246,10 @@ async function openWarehouse(wh) {
   updateCartBadge();
 
   try {
-    const data = await fetchInventory(() => sb.from('inventory')
-      .select('name, qty, category, max_order_qty')
-      .eq('warehouse', wh).eq('exposed', true).gt('qty', 0));
-
-    state.products = data;
+    const { data, error } = await sb.rpc('get_available_inventory', { p_warehouse: wh });
+    if (error) throw error;
+    state.products = (data || []).filter(p => p.exposed && Number(p.available_qty) > 0)
+      .map(p => ({ ...p, physical_qty: p.qty, qty: Number(p.available_qty) }));
     state.categories = ['הכל', ...new Set(state.products.map(p => p.category).filter(Boolean))];
     renderCategories();
     renderProducts();
@@ -252,6 +284,7 @@ function renderProducts() {
       <div>
         <div class="product-name">${esc(p.name)}</div>
         ${p.category ? `<div class="product-cat">${esc(p.category)}</div>` : ''}
+        <div class="product-stock">זמין להזמנה: ${p.qty}</div>
         ${p.max_order_qty ? `<div class="product-stock">עד ${max} יחידות בהזמנה</div>` : ''}
         ${qty >= max ? '<div class="product-stock">הגעת לכמות המרבית</div>' : ''}
       </div>
@@ -370,23 +403,14 @@ async function submitOrder(certMode) {
   btnB.textContent = 'שולח...';
 
   try {
-    // 1) יצירת ההזמנה
-    const { data: order, error: oErr } = await sb.from('orders').insert({
-      user_id: state.user.id,
-      initials, phone,
-      email: state.isGuest ? null : (state.user.email || null),
-      warehouse: state.warehouse,
-      cert_mode: certMode,
-      is_guest: state.isGuest,
-    }).select('id').single();
+    // Reserve all items atomically; a rejected item leaves no partial order.
+    const { data: order, error: oErr } = await sb.rpc('submit_order', {
+      p_initials: initials, p_phone: phone,
+      p_email: state.isGuest ? null : (state.user.email || null),
+      p_warehouse: state.warehouse, p_cert_mode: certMode, p_is_guest: state.isGuest,
+      p_items: Object.entries(state.cart).map(([name, item]) => ({ name, qty: item.qty })),
+    });
     if (oErr) throw oErr;
-
-    // 2) פריטי ההזמנה
-    const items = Object.entries(state.cart).map(([name, v]) => ({
-      order_id: order.id, name, qty: v.qty,
-    }));
-    const { error: iErr } = await sb.from('order_items').insert(items);
-    if (iErr) throw iErr;
 
     // 3) העלאת תעודת הספק (אם נבחרה)
     if (certMode === 'uploaded' && certFile) {

@@ -4,31 +4,50 @@
 import {
   sb, ADMIN_EMAIL, WH_LABEL, WAREHOUSES, WH_KEYS, emptyByWarehouse, state, loadWarehouses,
   $, on, esc, showScreen, toast, showError, fmtDate, friendlyError,
-  caps, fetchInventory, isMissingColumn, quantityValue,
-} from './lib.js?v=20261105-stock-pwa';
-
-const INV_COLS = 'id, warehouse, name, qty, category, exposed, max_order_qty';
+  caps, isMissingColumn, quantityValue, saveCurrentView,
+} from './lib.js?v=20261115-reservations-view';
 
 let inventory = emptyByWarehouse();
 let invEditMode = false;
 let invWarehouse = 'main';   // המחסן המוצג כרגע בלשונית המלאי
 
 // ── פתיחה + לשוניות ─────────────────────────────────────────
-export function openAdmin() {
+export async function openAdmin(view = {}) {
   showScreen('adminScreen', { title: 'ניהול', sub: 'לוח בקרה', back: true });
-  setTab('orders');
+  if (['pending', 'ready', 'collected'].includes(view.orderStage)) orderStage = view.orderStage;
+  const pane = ['orders', 'inventory', 'users', 'notify'].includes(view.adminPane) ? view.adminPane : 'orders';
+  await setTab(pane);
+  if (pane === 'inventory' && WH_KEYS.includes(view.inventoryWarehouse)) {
+    openInvWarehouse(view.inventoryWarehouse);
+    $('invSearch').value = view.inventorySearch || '';
+    if ([...$('invCategoryFilter').options].some(option => option.value === view.inventoryCategory)) {
+      $('invCategoryFilter').value = view.inventoryCategory;
+    }
+    renderInventory();
+  }
+  if (pane === 'orders') {
+    const openIds = new Set(view.openOrders || []);
+    document.querySelectorAll('#ordersList [data-order]').forEach(card => {
+      if (!openIds.has(card.dataset.order)) return;
+      card.classList.add('open');
+      card.querySelector('.order-details').hidden = false;
+      card.querySelector('[data-act="toggle-order"]').setAttribute('aria-expanded', 'true');
+    });
+  }
+  saveCurrentView();
 }
 
-function setTab(pane) {
+async function setTab(pane) {
   document.querySelectorAll('.admin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.pane === pane));
   ['orders', 'inventory', 'users', 'notify'].forEach(p =>
     $(p + 'Pane').classList.toggle('active', p === pane));
 
-  if (pane === 'orders') loadOrders();
-  if (pane === 'inventory') { showInvPicker(); loadInventory(); }
-  if (pane === 'users') loadUsers();
-  if (pane === 'notify') loadNotify();
+  if (pane === 'orders') await loadOrders();
+  if (pane === 'inventory') { showInvPicker(); await loadInventory(); }
+  if (pane === 'users') await loadUsers();
+  if (pane === 'notify') await loadNotify();
+  saveCurrentView();
 }
 
 // ── הזמנות ──────────────────────────────────────────────────
@@ -39,9 +58,9 @@ let orderStock = null;
 const stockKey = (warehouse, name) => JSON.stringify([warehouse, name]);
 
 async function fetchOrderStock() {
-  const { data, error } = await sb.from('inventory').select('warehouse, name, qty');
+  const { data, error } = await sb.rpc('get_available_inventory');
   if (error) throw error;
-  return new Map((data || []).map(item => [stockKey(item.warehouse, item.name), Number(item.qty)]));
+  return new Map((data || []).map(item => [stockKey(item.warehouse, item.name), Number(item.qty) - Number(item.reserved_qty)]));
 }
 
 function remainingStock(order, item, cardEl) {
@@ -54,8 +73,9 @@ function remainingStock(order, item, cardEl) {
     const input = cardEl?.querySelector(`[data-item="${other.id}"] .oi-qty-input`);
     return sum + (input ? Math.max(0, parseInt(input.value, 10) || 0) : Number(other.qty));
   }, 0);
-  // Ready orders have already deducted their saved quantities from inventory.
-  return orderStock.get(key) + (order.status === 'ready' ? savedQty : 0) - draftQty;
+  // The server balance already accounts for pending reservations and ready orders.
+  // Replace this order's saved quantity with the current draft in either case.
+  return orderStock.get(key) + savedQty - draftQty;
 }
 
 function stockLabel(order, item, cardEl) {
@@ -158,6 +178,7 @@ function orderCard(o) {
        </div>`;
 
   return `<div class="order-card ${isReady || isCollected ? 'approved' : ''}" data-order="${o.id}">
+    <div class="order-summary">
     <div class="order-head" data-act="toggle-order" role="button" tabindex="0" aria-expanded="false">
       <div class="order-meta">
         <div class="order-customer">${esc(o.initials || '—')}</div>
@@ -167,6 +188,8 @@ function orderCard(o) {
       </div>
       <span class="order-status ${stCls}">${stLabel}</span>
       <span class="order-chevron" aria-hidden="true">⌄</span>
+    </div>
+    ${isReady ? '<button type="button" class="btn-return-pending" data-act="return-pending">החזרה לממתינות</button>' : ''}
     </div>
     <div class="order-details" hidden>
       <div class="order-items">${items}</div>
@@ -266,6 +289,23 @@ async function markCollected(orderId) {
   } catch (err) { toast(friendlyError(err), true); }
 }
 
+async function returnOrderToPending(orderId, button) {
+  if (button.disabled) return;
+  button.disabled = true;
+  button.textContent = 'מחזיר לממתינות...';
+  try {
+    const { error } = await sb.rpc('return_order_to_pending', { p_order_id: orderId });
+    if (error) throw error;
+    orderStage = 'pending';
+    toast('ההזמנה הוחזרה לממתינות לאישור והמלאי הוחזר ✓');
+    await loadOrders();
+  } catch (err) {
+    toast(friendlyError(err), true);
+    button.disabled = false;
+    button.textContent = 'החזרה לממתינות';
+  }
+}
+
 let addItemOrderId = null;
 
 async function openAddItemModal(orderId) {
@@ -290,10 +330,9 @@ async function loadAddItemChoices() {
   list.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   const warehouse = $('addItemWarehouse').value;
   try {
-    const { data, error } = await sb.from('inventory')
-      .select('id, name, qty, category').eq('warehouse', warehouse).order('name');
+    const { data, error } = await sb.rpc('get_available_inventory', { p_warehouse: warehouse });
     if (error) throw error;
-    list.dataset.items = JSON.stringify(data || []);
+    list.dataset.items = JSON.stringify((data || []).map(item => ({ ...item, qty: Number(item.available_qty) })));
     renderAddItemChoices();
   } catch (err) { list.innerHTML = `<div class="admin-empty">${esc(friendlyError(err))}</div>`; }
 }
@@ -365,7 +404,7 @@ async function setItemQty(itemId, qty, rowEl) {
     const item = order?.order_items.find(it => it.id === itemId);
     if (item) {
       const key = stockKey(item.warehouse ?? order.warehouse, item.name);
-      if (order.status === 'ready' && orderStock?.has(key)) {
+      if (orderStock?.has(key)) {
         orderStock.set(key, orderStock.get(key) - (qty - prev));
       }
       item.qty = qty;
@@ -435,9 +474,10 @@ async function loadInventory() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
   try {
     await loadWarehouses(true);
-    const data = await fetchInventory(() => sb.from('inventory').select(INV_COLS));
+    const { data, error } = await sb.rpc('get_available_inventory');
+    if (error) throw error;
     inventory = emptyByWarehouse();
-    data.forEach(p => inventory[p.warehouse]?.push(p));
+    (data || []).forEach(p => inventory[p.warehouse]?.push(p));
     renderPicker();
     if ($('invDetail').style.display !== 'none') {
       renderInvCategoryFilter();
@@ -532,6 +572,7 @@ function showInvPicker() {
 
 function openInvWarehouse(wh) {
   invWarehouse = wh;
+  $('invDetail').dataset.warehouse = wh;
   $('invPicker').style.display = 'none';
   $('invDetail').style.display = 'block';
   renderInvHeader();
@@ -640,7 +681,9 @@ function renderInventory() {
       </div>`;
     }
     return `<div class="inv-row clickable" data-inv="${p.id}" role="button" tabindex="0" aria-label="עריכת ${esc(p.name)}">
-      <span class="inv-name">${esc(p.name)}${p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>'}</span>
+      <span class="inv-name">${esc(p.name)}${p.exposed ? '' : '<span class="inv-hidden-tag">מוסתר</span>'}
+        <small class="inv-availability">תפוס להזמנות: ${Number(p.reserved_qty || 0)} · זמין: ${Math.max(0, Number(p.qty) - Number(p.reserved_qty || 0))}</small>
+      </span>
       <span class="inv-stock ${low ? 'low' : ''}">${p.qty}</span>
     </div>`;
   }).join('');
@@ -1306,6 +1349,7 @@ export function initAdmin() {
       if (act === 'approve') return approveOrder(orderId, card);
       if (act === 'del') return deleteOrder(orderId);
       if (act === 'collected') return markCollected(orderId);
+      if (act === 'return-pending') return returnOrderToPending(orderId, btn);
       if (act === 'cert') return downloadCert(orderId);
       if (act === 'save-note') return saveOrderNote(orderId, card);
       if (act === 'add-item') return openAddItemModal(orderId);

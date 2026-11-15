@@ -513,7 +513,16 @@ body[data-wh] .submit-btn { background: var(--wh-accent); }
   gap: 7px; margin-bottom: 14px;
 }
 .order-card .order-head { margin-bottom: 0; cursor: pointer; }
-.order-card.open .order-head { margin-bottom: 10px; }
+.order-card.open .order-summary { margin-bottom: 10px; }
+.btn-return-pending {
+  margin-top: 8px; min-height: 44px; padding: 8px 12px;
+  border: 1.5px solid var(--primary); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--primary);
+  font-family: inherit; font-size: .78rem; font-weight: 700; cursor: pointer;
+}
+.btn-return-pending:hover { background: var(--bg); }
+.btn-return-pending:disabled { opacity: .45; cursor: not-allowed; }
+.inv-availability { display: block; margin-top: 3px; color: var(--text-light); font-size: .72rem; font-weight: 400; }
 .order-chevron { font-size: 1.25rem; color: var(--text-light); transition: transform .18s; }
 .order-card.open .order-chevron { transform: rotate(180deg); }
 .order-details[hidden] { display: none; }

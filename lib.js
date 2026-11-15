@@ -90,7 +90,47 @@ const SCREENS = [
   'orderScreen', 'successScreen', 'myOrdersScreen', 'adminScreen',
 ];
 
+const VIEW_KEY = 'orders-current-view-v1';
+let activeScreen = null;
+export function readSavedView() {
+  try {
+    const view = JSON.parse(sessionStorage.getItem(VIEW_KEY));
+    return view?.userId === state.user?.id && SCREENS.includes(view.screen) ? view : null;
+  } catch { return null; }
+}
+
+export function clearSavedView() {
+  try { sessionStorage.removeItem(VIEW_KEY); } catch { /* Storage may be disabled. */ }
+}
+
+export function saveCurrentView() {
+  if (!state.user || !activeScreen || activeScreen === 'loginScreen' || activeScreen === 'configScreen') return;
+  const view = {
+    userId: state.user.id, screen: activeScreen, warehouse: state.warehouse, scrollY: window.scrollY,
+    adminPane: document.querySelector('.admin-tab.active')?.dataset.pane,
+    orderStage: document.querySelector('#orderStageTabs .active')?.dataset.status,
+    inventoryWarehouse: $('invDetail')?.style.display !== 'none' ? $('invDetail')?.dataset.warehouse : null,
+    openOrders: [...document.querySelectorAll('#ordersList .order-card.open')].map(card => card.dataset.order),
+    productSearch: $('prodSearch')?.value || '', category: state.activeCategory,
+    inventorySearch: $('invSearch')?.value || '', inventoryCategory: $('invCategoryFilter')?.value || '',
+    cart: activeScreen === 'orderScreen' ? state.cart : {},
+    initials: $('ordInitials')?.value || '', phone: $('ordPhone')?.value || '',
+    successText: $('successText')?.textContent || '',
+  };
+  try { sessionStorage.setItem(VIEW_KEY, JSON.stringify(view)); } catch { /* Navigation still works without storage. */ }
+}
+
+// Save after event handlers finish and again before reloading the page.
+['click', 'input', 'change'].forEach(type => document.addEventListener(type, () => setTimeout(saveCurrentView, 0)));
+let viewScrollTimer;
+window.addEventListener('scroll', () => {
+  clearTimeout(viewScrollTimer);
+  viewScrollTimer = setTimeout(saveCurrentView, 120);
+}, { passive: true });
+window.addEventListener('pagehide', saveCurrentView);
+
 export function showScreen(id, opts = {}) {
+  activeScreen = id;
   SCREENS.forEach((s) => $(s)?.classList.toggle('active', s === id));
   $('headerTitle').textContent = opts.title || 'מערכת הזמנות';
   $('headerSub').textContent = opts.sub || 'רבנות אוגדה 98';
@@ -101,6 +141,7 @@ export function showScreen(id, opts = {}) {
   if (!opts.keepCart) $('cartBadge').style.display = 'none';
   closeAccountMenu();
   window.scrollTo(0, 0);
+  saveCurrentView();
 }
 
 export function closeAccountMenu() { $('accountMenu')?.classList.remove('open'); }
