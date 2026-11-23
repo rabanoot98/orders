@@ -10,12 +10,13 @@ import {
 let inventory = emptyByWarehouse();
 let invEditMode = false;
 let invWarehouse = 'main';   // המחסן המוצג כרגע בלשונית המלאי
+const ADMIN_PANES = ['dashboard', 'orders', 'inventory', 'users', 'notify'];
 
 // ── פתיחה + לשוניות ─────────────────────────────────────────
 export async function openAdmin(view = {}) {
   showScreen('adminScreen', { title: 'ניהול', sub: 'לוח בקרה', back: true });
   if (['pending', 'ready', 'collected'].includes(view.orderStage)) orderStage = view.orderStage;
-  const pane = ['orders', 'inventory', 'users', 'notify'].includes(view.adminPane) ? view.adminPane : 'orders';
+  const pane = ADMIN_PANES.includes(view.adminPane) ? view.adminPane : 'dashboard';
   await setTab(pane);
   if (pane === 'inventory' && WH_KEYS.includes(view.inventoryWarehouse)) {
     openInvWarehouse(view.inventoryWarehouse);
@@ -40,9 +41,10 @@ export async function openAdmin(view = {}) {
 async function setTab(pane) {
   document.querySelectorAll('.admin-tab').forEach(t =>
     t.classList.toggle('active', t.dataset.pane === pane));
-  ['orders', 'inventory', 'users', 'notify'].forEach(p =>
+  ADMIN_PANES.forEach(p =>
     $(p + 'Pane').classList.toggle('active', p === pane));
 
+  if (pane === 'dashboard') await loadDashboard();
   if (pane === 'orders') await loadOrders();
   if (pane === 'inventory') { showInvPicker(); await loadInventory(); }
   if (pane === 'users') await loadUsers();
@@ -56,6 +58,127 @@ let allOrders = [];
 let orderStage = 'pending';
 let orderStock = null;
 const stockKey = (warehouse, name) => JSON.stringify([warehouse, name]);
+
+let dashboardData = null;
+const dashboardNumber = new Intl.NumberFormat('he-IL');
+
+async function readDashboardRows(table, columns) {
+  const rows = [];
+  let lastId;
+  while (true) {
+    let query = sb.from(table).select(columns).order('id').limit(500);
+    if (lastId !== undefined) query = query.gt('id', lastId);
+    const { data, error } = await query;
+    if (error) throw error;
+    if (!data.length) return rows;
+    rows.push(...data);
+    lastId = data.at(-1).id;
+  }
+}
+
+async function loadDashboard() {
+  const refresh = $('refreshDashboard');
+  if (refresh.disabled) return;
+  refresh.disabled = true;
+  dashboardData = null;
+  $('dashboardFilters').hidden = true;
+  $('dashboardContent').replaceChildren();
+  $('dashboardStatus').textContent = 'טוען נתוני הזמנות וניפוק…';
+  try {
+    const [orders, inventoryItems, orderItems] = await Promise.all([
+      readDashboardRows('orders', 'id, warehouse, status'),
+      readDashboardRows('inventory', 'id, warehouse, name'),
+      readDashboardRows('order_items', 'id, order_id, warehouse, name, qty'),
+    ]);
+    dashboardData = { orders, inventoryItems, orderItems };
+    const warehouseSelect = $('dashboardWarehouse');
+    const selected = warehouseSelect.value;
+    const warehouses = new Set([
+      ...WH_KEYS,
+      ...inventoryItems.map(item => item.warehouse),
+      ...orders.map(order => order.warehouse),
+      ...orderItems.map(item => item.warehouse).filter(Boolean),
+    ]);
+    warehouseSelect.replaceChildren(new Option('כל המחסנים', ''),
+      ...Array.from(warehouses, wh => new Option(WH_LABEL[wh] || wh, wh)));
+    if (warehouses.has(selected)) warehouseSelect.value = selected;
+    $('dashboardStatus').textContent = '';
+    $('dashboardFilters').hidden = false;
+    renderDashboard();
+  } catch (err) {
+    $('dashboardStatus').textContent = 'טעינת הדשבורד נכשלה. ' + friendlyError(err);
+  } finally {
+    refresh.disabled = false;
+  }
+}
+
+function renderDashboard() {
+  if (!dashboardData) return;
+  const { orders, inventoryItems, orderItems } = dashboardData;
+  const warehouse = $('dashboardWarehouse').value;
+  const search = $('dashboardSearch').value.trim().toLowerCase();
+  const products = new Map();
+  const orderById = new Map(orders.map(order => [order.id, order]));
+  const matchingOrders = new Set(orders.filter(order => !warehouse || order.warehouse === warehouse));
+  const registerProduct = (name, wh, qty) => {
+    const key = stockKey(wh, name);
+    const product = products.get(key) || { name, warehouse: wh, qty: 0 };
+    product.qty += qty;
+    products.set(key, product);
+  };
+
+  for (const item of inventoryItems) {
+    if (!warehouse || item.warehouse === warehouse) registerProduct(item.name, item.warehouse, 0);
+  }
+  for (const item of orderItems) {
+    const order = orderById.get(item.order_id);
+    if (!order) continue;
+    const wh = item.warehouse ?? order.warehouse;
+    if (warehouse && wh !== warehouse) continue;
+    matchingOrders.add(order);
+    if (order.status === 'collected' && Number(item.qty) > 0) {
+      registerProduct(item.name, wh, Number(item.qty));
+    }
+  }
+
+  const counts = { pending: 0, ready: 0, collected: 0 };
+  for (const order of matchingOrders) counts[order.status]++;
+  const total = [...products.values()].reduce((sum, product) => sum + product.qty, 0);
+  const rows = [...products.values()]
+    .filter(product => product.name.toLowerCase().includes(search))
+    .sort((a, b) => b.qty - a.qty || a.name.localeCompare(b.name, 'he'));
+  const leading = rows.filter(product => product.qty > 0).slice(0, 8);
+  const number = value => dashboardNumber.format(value);
+  const warehouseLabel = wh => esc(WH_LABEL[wh] || wh);
+  const metrics = [
+    ['יחידות שנופקו', total], ['הזמנות שנאספו', counts.collected],
+    ['ממתינות לאישור', counts.pending], ['ממתינות לאיסוף', counts.ready],
+  ];
+  $('dashboardContent').innerHTML = `
+    <div class="dashboard-metrics">
+      ${metrics.map(([label, value]) => `<div class="dashboard-metric"><span>${label}</span><strong>${number(value)}</strong></div>`).join('')}
+    </div>
+    <section class="dashboard-panel" aria-labelledby="dashboardChartTitle">
+      <h4 id="dashboardChartTitle">המוצרים המובילים בניפוק</h4>
+      <p>יחידות בהזמנות שסומנו כנאספו · עד 8 מוצרים</p>
+      ${leading.length ? `<ul class="dashboard-chart">
+        ${leading.map(product => `<li>
+          <div class="dashboard-column" style="--bar-height:${100 * product.qty / leading[0].qty}%">
+            <strong>${number(product.qty)}</strong><span aria-hidden="true"></span>
+          </div>
+          <div class="dashboard-bar-label">${esc(product.name)}${warehouse ? '' : `<small>${warehouseLabel(product.warehouse)}</small>`}</div>
+        </li>`).join('')}
+      </ul>` : '<p class="dashboard-empty">אין ניפוקים להצגה</p>'}
+    </section>
+    <section class="dashboard-panel" aria-labelledby="dashboardTableTitle">
+      <h4 id="dashboardTableTitle">כמויות שנופקו לפי מוצר</h4>
+      ${rows.length ? `<table class="dashboard-table" aria-labelledby="dashboardTableTitle">
+        <thead><tr><th scope="col">מוצר</th><th scope="col">מחסן</th><th scope="col">יחידות</th></tr></thead>
+        <tbody>${rows.map(product => `<tr><th scope="row">${esc(product.name)}</th>
+          <td>${warehouseLabel(product.warehouse)}</td><td>${number(product.qty)}</td></tr>`).join('')}</tbody>
+      </table>` : '<p class="dashboard-empty">לא נמצאו מוצרים</p>'}
+    </section>`;
+}
 
 async function fetchOrderStock() {
   const { data, error } = await sb.rpc('get_available_inventory');
@@ -1172,6 +1295,9 @@ export function initAdmin() {
   document.querySelectorAll('.admin-tab').forEach(t =>
     t.addEventListener('click', () => setTab(t.dataset.pane)));
 
+  on('refreshDashboard', 'click', loadDashboard);
+  on('dashboardWarehouse', 'change', renderDashboard);
+  on('dashboardSearch', 'input', renderDashboard);
   on('refreshOrders', 'click', loadOrders);
   on('orderStageTabs', 'click', (e) => {
     const btn = e.target.closest('[data-status]');

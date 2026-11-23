@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="רבנות 98">
 <meta name="theme-color" content="#1c1c2e">
-<link rel="stylesheet" href="styles.css?v=20261115-reservations-view">
+<link rel="stylesheet" href="styles.css?v=20261123-dashboard">
 <link rel="stylesheet" href="pwa.css?v=20261105-pwa">
 <script src="pwa-install.js?v=20261105-pwa" defer></script>
 </head>
@@ -164,13 +164,27 @@
   <!-- ══ ADMIN ══ -->
   <div class="screen" id="adminScreen">
     <div class="admin-tabs">
-      <button class="admin-tab active" data-pane="orders">הזמנות</button>
+      <button class="admin-tab active" data-pane="dashboard">לוח בקרה</button>
+      <button class="admin-tab" data-pane="orders">הזמנות</button>
       <button class="admin-tab" data-pane="inventory">מלאי</button>
       <button class="admin-tab" data-pane="users">משתמשים</button>
       <button class="admin-tab" data-pane="notify">התראות</button>
     </div>
 
-    <div class="admin-pane active" id="ordersPane">
+    <div class="admin-pane active" id="dashboardPane">
+      <div class="admin-toolbar">
+        <h3>לוח בקרה</h3>
+        <button class="icon-btn" id="refreshDashboard">↻ רענן</button>
+      </div>
+      <div class="dashboard-filters" id="dashboardFilters" hidden>
+        <label>מחסן <select id="dashboardWarehouse"></select></label>
+        <label>חיפוש מוצר <input type="search" id="dashboardSearch" placeholder="שם המוצר"></label>
+      </div>
+      <div id="dashboardStatus" role="status"></div>
+      <div id="dashboardContent"></div>
+    </div>
+
+    <div class="admin-pane" id="ordersPane">
       <div class="admin-toolbar">
         <h3>הזמנות</h3>
         <button class="icon-btn" id="refreshOrders">↻ רענן</button>
@@ -391,6 +405,6 @@
 </dialog>
 
 <script src="config.js"></script>
-<script type="module" src="app.js?v=20261115-reservations-view"></script>
+<script type="module" src="app.js?v=20261123-dashboard"></script>
 </body>
 </html>

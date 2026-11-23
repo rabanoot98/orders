@@ -6,7 +6,7 @@ import {
   $, on, esc, showScreen, closeAccountMenu, toast, showError, fmtDate, friendlyError,
   quantityValue, readSavedView, clearSavedView, saveCurrentView,
 } from './lib.js?v=20261115-reservations-view';
-import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20261115-reservations-view';
+import { openAdmin, initAdmin, invokeFn } from './admin.js?v=20261123-dashboard';
 
 // ── ניווט בסיסי ─────────────────────────────────────────────
 export function goHome() {
@@ -284,9 +284,7 @@ function renderProducts() {
       <div>
         <div class="product-name">${esc(p.name)}</div>
         ${p.category ? `<div class="product-cat">${esc(p.category)}</div>` : ''}
-        <div class="product-stock">זמין להזמנה: ${p.qty}</div>
-        ${p.max_order_qty ? `<div class="product-stock">עד ${max} יחידות בהזמנה</div>` : ''}
-        ${qty >= max ? '<div class="product-stock">הגעת לכמות המרבית</div>' : ''}
+        ${p.max_order_qty ? `<div class="product-limit">עד ${Number(p.max_order_qty)} יחידות בהזמנה</div>` : ''}
       </div>
       <div class="qty-control">
         <button class="qty-btn minus" data-act="dec" ${qty === 0 ? 'disabled' : ''}>−</button>
